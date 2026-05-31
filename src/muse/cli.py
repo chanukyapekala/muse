@@ -1,6 +1,7 @@
 """muse CLI — summon multiple AI minds, let the best idea win."""
 
 import asyncio
+import uuid
 from typing import Annotated
 
 import typer
@@ -9,8 +10,10 @@ from rich.markdown import Markdown
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from muse.judge import judge
-from muse.orchestrator import ModelResult, fan_out
+from muse.engine.judge import judge
+from muse.engine.orchestrator import fan_out
+from muse.engine.storage.sqlite_store import SQLiteStore
+from muse.engine.types import ModelResult, MuseResponse
 from muse.writer import write_session
 
 app = typer.Typer(
@@ -26,12 +29,18 @@ def _print_scores_table(results: list[ModelResult]) -> None:
     table.add_column("Model", style="bold")
     table.add_column("Status")
     table.add_column("Length")
+    table.add_column("Latency")
 
     for r in results:
         if r.error:
-            table.add_row(r.name, "[red]failed[/red]", "-")
+            table.add_row(r.name, "[red]failed[/red]", "-", "-")
         else:
-            table.add_row(r.name, "[green]ok[/green]", str(len(r.content)))
+            table.add_row(
+                r.name,
+                "[green]ok[/green]",
+                str(len(r.content)),
+                f"{r.latency_ms}ms",
+            )
 
     console.print(table)
 
@@ -61,6 +70,7 @@ async def _run(
                 console.print(Markdown(r.content))
 
     synthesis = ""
+    trust_score = None
     if not no_judge:
         with Progress(
             SpinnerColumn(),
@@ -69,13 +79,28 @@ async def _run(
             transient=True,
         ) as progress:
             progress.add_task("Judge synthesizing...", total=None)
-            synthesis = await judge(prompt, results)
+            synthesis, trust_score = await judge(prompt, results)
 
+        if trust_score is not None:
+            console.print(f"\n[bold]Trust score:[/bold] {trust_score:.2f}")
         console.rule("[bold green]Synthesis[/bold green]")
         console.print(Markdown(synthesis))
 
+    # Save to filesystem (backward compat)
     session_dir = await write_session(prompt, results, synthesis)
     console.print(f"\n[dim]Session saved to:[/dim] [bold]{session_dir}[/bold]")
+
+    # Save to SQLite history
+    store = SQLiteStore()
+    response = MuseResponse(
+        session_id=str(uuid.uuid4()),
+        prompt=prompt,
+        answer=synthesis,
+        trust_score=trust_score,
+        raw_responses=results,
+        total_cost_usd=sum(r.cost_usd for r in results),
+    )
+    await store.save(response)
 
 
 @app.command()
@@ -83,7 +108,9 @@ def ideate(
     prompt: Annotated[str, typer.Argument(help="Your ideation prompt.")],
     models: Annotated[
         list[str] | None,
-        typer.Option("--model", "-m", help="Restrict to specific models (claude, openai, gemini, qwen)."),
+        typer.Option(
+            "--model", "-m", help="Restrict to specific models (claude, openai, gemini, qwen)."
+        ),
     ] = None,
     no_judge: Annotated[
         bool,
@@ -102,6 +129,19 @@ def ideate(
       muse --show-all "build a Databricks cost alerting agent"
     """
     asyncio.run(_run(prompt, models, no_judge, show_all))
+
+
+@app.command()
+def serve(
+    host: Annotated[str, typer.Option(help="Host to bind to.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port to listen on.")] = 8000,
+) -> None:
+    """Start the muse API server (localhost only)."""
+    from muse.api import serve as start_server
+
+    console.print(f"[bold]muse API[/bold] starting on http://{host}:{port}")
+    console.print("[dim]Press Ctrl+C to stop[/dim]")
+    start_server(host=host, port=port)
 
 
 if __name__ == "__main__":

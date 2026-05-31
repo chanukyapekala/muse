@@ -211,27 +211,30 @@ async def chat_completions(req: ChatRequest) -> ChatResponse:
     max_tokens = req.max_tokens or 2048
 
     # Route based on model name
-    if req.model == "muse":
-        # Full muse flow: fan-out + judge
-        results = await fan_out(prompt=user_prompt, system=system, max_tokens=max_tokens)
-        answer, _ = await judge(user_prompt, results)
-        total_in = sum(r.input_tokens for r in results)
-        total_out = sum(r.output_tokens for r in results)
-    else:
-        # Route to a specific provider by slug (e.g. "mlx", "claude", "openai")
-        providers = get_all_providers()
-        provider = next((p for p in providers if p.slug == req.model), None)
-        if provider is None:
-            # Fallback: try all available, pick first
-            provider = providers[0] if providers else None
-        if provider is None:
-            answer = "No providers available. Check your API keys or install mlx-lm."
-            total_in, total_out = 0, 0
+    try:
+        if req.model == "muse":
+            # Full muse flow: fan-out + judge
+            results = await fan_out(prompt=user_prompt, system=system, max_tokens=max_tokens)
+            answer, _ = await judge(user_prompt, results)
+            total_in = sum(r.input_tokens for r in results)
+            total_out = sum(r.output_tokens for r in results)
         else:
-            result = await provider.generate(user_prompt, system, max_tokens)
-            answer = result.content
-            total_in = result.input_tokens
-            total_out = result.output_tokens
+            # Route to a specific provider by slug (e.g. "mlx", "claude", "openai")
+            providers = get_all_providers()
+            provider = next((p for p in providers if p.slug == req.model), None)
+            if provider is None:
+                provider = providers[0] if providers else None
+            if provider is None:
+                answer = "No providers available. Check your API keys or install mlx-lm."
+                total_in, total_out = 0, 0
+            else:
+                result = await provider.generate(user_prompt, system, max_tokens)
+                answer = result.content
+                total_in = result.input_tokens
+                total_out = result.output_tokens
+    except Exception as exc:
+        answer = f"Error: {exc}"
+        total_in, total_out = 0, 0
 
     return ChatResponse(
         id=f"chatcmpl-{uuid.uuid4().hex[:12]}",

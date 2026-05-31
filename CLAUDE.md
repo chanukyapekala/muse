@@ -1,102 +1,125 @@
-# muse — Development Plan
+# muse — Development Guide
 
-## What muse is
+## Vision
 
-A CLI tool that fans out an ideation prompt to multiple AI models concurrently, then runs a judge (Claude Opus) that scores all responses and produces a `synthesis.md` with the best combined recommendation.
+muse is a **private, multi-model AI synthesis tool**. You type a prompt, multiple models respond concurrently, and a judge produces one authoritative answer with a trust score. The user sees the answer, not the noise.
 
-The differentiator: not a "side-by-side UI for many models" — muse explicitly surfaces **consensus vs. disagreement** across models and synthesizes them into one authoritative answer.
+**Target audience:** Students and individuals who want a cheaper, private alternative to ChatGPT/Claude subscriptions. BYOK (bring your own API keys) means pay-per-token instead of $20/mo, and on-device inference via MLX means $0 for offline use.
 
----
-
-## Current state (Phase 1 — complete)
-
-- `orchestrator.py` — async fan-out to Claude, OpenAI GPT, Gemini, Qwen
-- `models/adapters.py` — one adapter per provider, each returns structured markdown
-- `judge.py` — Claude Opus reads all responses, scores on Feasibility/Novelty/Specificity, writes synthesis
-- `writer.py` — saves session to `ideas/<timestamp_hash>/` with one `.md` per model + `synthesis.md`
-- `cli.py` — Typer CLI with `--model`, `--no-judge`, `--show-all` flags
-- `config.py` — Pydantic Settings, all keys and model names overridable via `.env`
-
-**Known gap:** The previous run (`ideas/20260409_235749_ebc41c/`) failed with 401s — no `.env` file was present.
+**Privacy is non-negotiable.** No muse server, no telemetry, no data leakage. Prompts go directly from device to model API. On-device MLX mode is fully airgapped.
 
 ---
 
-## MVP gaps
+## Current state
 
-| Item | Status | Notes |
-|------|--------|-------|
-| OpenRouter aggregation | Missing | Currently 4 separate API keys/adapters; OpenRouter replaces all with one pipe |
-| Merge / Synthesis | Partial | Judge does this, but no explicit "consensus vs. disagreement" section |
-| Cost Tracking | Missing | No token counting, no $/call display |
-| Persona Library | Missing | `SYSTEM_PROMPT` is hardcoded in adapters; no `--persona` flag |
+### Done
 
----
+- **Engine** (`src/muse/engine/`) — provider-based architecture with `Provider` protocol, async fan-out orchestrator, provider-agnostic judge with trust scoring
+- **Providers** — Anthropic, OpenAI, Gemini, Qwen (each as a class implementing `Provider`)
+- **Storage** — SQLite backend at `~/.muse/history.db` for session persistence
+- **CLI** (`cli.py`) — `muse "prompt"` for synthesis, `muse serve` to start local API
+- **API** (`api.py`) — FastAPI server, localhost-only, `POST /muse` → judge answer + trust score
+- **Tests** — 15 tests covering orchestrator, judge, API, and storage
 
-## Roadmap
+### Not yet built
 
-### Phase 2 — Cost Tracking
-
-Token usage is already returned by every API response but is not surfaced.
-
-- Add `input_tokens` and `output_tokens` to `ModelResult`
-- Add per-model cost rates to `config.py` (overridable via `.env`)
-- Display a cost table in the CLI after fan-out
-- Include total cost in `synthesis.md` header
-
-### Phase 3 — Persona Library
-
-The system prompt in `adapters.py` is hardcoded. Personas allow the prompt to be shaped by a role.
-
-- Add `--persona` / `-p` CLI flag (e.g. `--persona "Expert Code Reviewer"`)
-- Ship built-in presets: `code-reviewer`, `creative-writer`, `product-manager`, `devil-advocate`
-- Store presets in `src/muse/personas.toml`
-- Custom persona string is injected as a role prefix into the system prompt
-
-### Phase 4 — OpenRouter Migration
-
-Currently requires 4 separate API keys. OpenRouter provides one endpoint for 200+ models.
-
-- Replace the 4 adapters with a single OpenRouter adapter (OpenAI-compatible)
-- Single `OPENROUTER_API_KEY` in `.env`
-- Model roster becomes data-driven (a list in config), not hardcoded adapters
-- Enables easy expansion: add Mistral, LLaMA, Grok, etc. without new adapter code
-- Cost tracking integrates naturally — OpenRouter returns unified usage metadata
-
-### Phase 5 — Synthesis Quality
-
-Improve the judge output to be more explicitly useful.
-
-- Add a **Consensus** section: what all (or most) models agreed on
-- Add a **Disagreements** section: where models diverged and why it matters
-- Score the judge's own confidence
-- Support `--judge-model` CLI flag to override the synthesis model
+| Item | Phase | Notes |
+|------|-------|-------|
+| MLX on-device provider | 3 | Apple Silicon local inference, offline mode |
+| iOS app | 4 | SwiftUI, reimplements engine in Swift, MLX Swift for on-device |
+| OpenRouter | 5 | Single API key for 200+ models, replaces per-provider keys |
+| Persona library | 6 | `--persona` flag, presets in `personas.toml` |
+| Cost tracking display | 5 | Token counts are captured but not surfaced in CLI/API |
 
 ---
 
 ## Architecture
 
 ```
-muse "prompt"
-  └── orchestrator.py       async fan-out
-        ├── adapters.py     one per model (or one OpenRouter adapter post-Phase 4)
-        │     claude.md
-        │     openai.md
-        │     gemini.md
-        │     qwen.md
-        └── judge.py        Claude Opus synthesizes all → synthesis.md
-              writer.py     saves ideas/<session>/
+src/muse/
+  engine/                    ← core (shared contract for all frontends)
+    types.py                 ← ModelResult, MuseRequest, MuseResponse
+    orchestrator.py          ← fan_out() — async concurrent dispatch to providers
+    judge.py                 ← judge() — synthesis + trust score extraction
+    providers/
+      base.py                ← Provider protocol (slug, name, generate, is_available)
+      anthropic.py           ← Claude
+      openai_provider.py     ← GPT
+      gemini.py              ← Gemini
+      qwen.py                ← Qwen
+    storage/
+      base.py                ← StorageBackend protocol
+      sqlite_store.py        ← SQLite implementation
+  cli.py                     ← Typer CLI (presentation only)
+  api.py                     ← FastAPI local server (presentation only)
+  config.py                  ← Pydantic Settings, .env-driven
+  writer.py                  ← Filesystem session writer (legacy, kept for backward compat)
 ```
+
+**Adding a new provider:** Create a class in `engine/providers/` implementing `Provider` protocol (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
+
+**Frontend contract:** All frontends (CLI, API, iOS) consume `MuseResponse` — which contains `answer` (judge synthesis), `trust_score`, and `raw_responses` (expandable on demand).
+
+---
+
+## Roadmap
+
+### Phase 3 — MLX On-Device Provider
+
+The compelling feature. Local inference on Apple Silicon, zero cost, works offline.
+
+- Add `mlx-lm` as optional dependency (Apple Silicon only)
+- Implement `engine/providers/mlx_local.py` conforming to `Provider`
+- Model management: `muse models download llama-3.2-3b`
+- Target: quantized 1-3B models (Llama 3.2 1B = ~800MB RAM, 3B = ~2GB)
+- `muse --model mlx "prompt"` for local-only mode
+- `cost_usd = 0.0`, `provider_type = "local"`
+
+### Phase 4 — iOS App
+
+SwiftUI app, Swift-native (no Python bridging). Reimplements ~300 lines of orchestration logic.
+
+- **UX:** Prompt input → one judge answer with trust score → expandable raw responses toggle
+- Cloud providers via URLSession direct API calls
+- On-device via MLX Swift (`mlx-swift`)
+- API keys in iOS Keychain
+- Session history in SwiftData/SQLite
+- Lightweight: <20MB binary, models downloaded on demand
+
+```
+MuseApp/
+  Sources/
+    Engine/          ← Swift orchestrator + judge
+    Providers/       ← Cloud + MLX Swift adapters
+    Storage/         ← SQLite + Keychain
+    Views/           ← IdeateView, ResultsView, SettingsView
+```
+
+### Phase 5 — OpenRouter Migration
+
+Replace per-provider API keys with single OpenRouter endpoint.
+
+- Single `OPENROUTER_API_KEY` in `.env`
+- Model roster becomes data-driven (config list, not hardcoded classes)
+- Cost tracking from unified OpenRouter usage metadata
+
+### Phase 6 — Persona Library
+
+- `--persona "code reviewer"` CLI flag
+- Built-in presets in `personas.toml`: code-reviewer, creative-writer, product-manager, devil-advocate
+- Persona string injected as system prompt prefix
 
 ---
 
 ## Development commands
 
 ```bash
-uv sync --extra dev        # install with dev deps
-uv run muse "your prompt"  # run
-uv run pytest              # tests
-uv run ruff check --fix . && uv run ruff format .  # lint + format
-uv run mypy src/           # type check
+uv sync --extra dev                                  # install with dev deps
+uv run muse "your prompt"                           # run CLI
+uv run muse serve                                    # start local API server
+uv run pytest                                        # tests
+uv run ruff check --fix . && uv run ruff format .   # lint + format
+uv run mypy src/                                     # type check
 ```
 
 ## Environment
@@ -110,4 +133,4 @@ GOOGLE_API_KEY=
 QWEN_API_KEY=
 ```
 
-Post-Phase 4, only `OPENROUTER_API_KEY` will be required.
+Post-Phase 5, only `OPENROUTER_API_KEY` will be required.

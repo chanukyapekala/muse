@@ -132,6 +132,56 @@ def ideate(
 
 
 @app.command()
+def models(
+    action: Annotated[str, typer.Argument(help="Action: download, list, or remove.")] = "list",
+    model_name: Annotated[
+        str | None,
+        typer.Argument(help="Model name (e.g. mlx-community/Llama-3.2-3B-Instruct-4bit)."),
+    ] = None,
+) -> None:
+    """Manage on-device MLX models.
+
+    Examples:\n
+      muse models list\n
+      muse models download mlx-community/Llama-3.2-3B-Instruct-4bit\n
+      muse models download mlx-community/Llama-3.2-1B-Instruct-4bit
+    """
+    if action == "list":
+        from muse.engine.providers.mlx_local import MLXLocalProvider
+
+        provider = MLXLocalProvider()
+        if not provider.is_available():
+            console.print("[red]MLX not available.[/red] Requires Apple Silicon + mlx-lm package.")
+            console.print("Install with: [bold]uv pip install mlx-lm[/bold]")
+            return
+        from muse.config import settings
+
+        console.print(f"[bold]Configured model:[/bold] {settings.mlx_model}")
+        console.print("\n[dim]Override via MLX_MODEL in .env[/dim]")
+
+    elif action == "download":
+        if not model_name:
+            console.print(
+                "[red]Specify a model name.[/red] e.g. muse models download mlx-community/Llama-3.2-3B-Instruct-4bit"
+            )
+            return
+        try:
+            from mlx_lm import load
+
+            console.print(f"Downloading [bold]{model_name}[/bold]...")
+            load(model_name)
+            console.print("[green]Done.[/green] Model cached locally.")
+            console.print(f"Set [bold]MLX_MODEL={model_name}[/bold] in .env to use it.")
+        except ImportError:
+            console.print("[red]mlx-lm not installed.[/red] Run: uv pip install mlx-lm")
+        except Exception as e:
+            console.print(f"[red]Download failed:[/red] {e}")
+
+    else:
+        console.print(f"[red]Unknown action:[/red] {action}. Use: list, download")
+
+
+@app.command()
 def serve(
     host: Annotated[str, typer.Option(help="Host to bind to.")] = "127.0.0.1",
     port: Annotated[int, typer.Option(help="Port to listen on.")] = 8000,

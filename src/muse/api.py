@@ -1,13 +1,14 @@
 """muse API — local-only FastAPI server. No data leaves your machine except to model providers."""
 
+import time
 import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from muse.engine.judge import judge
-from muse.engine.orchestrator import fan_out
+from muse.engine.orchestrator import SYSTEM_PROMPT, fan_out, get_all_providers
 from muse.engine.storage.sqlite_store import SQLiteStore
 from muse.engine.types import MuseResponse
 
@@ -152,6 +153,118 @@ async def get_session(session_id: str) -> dict:
 async def health() -> dict:
     """Health check."""
     return {"status": "ok", "service": "muse"}
+
+
+# --- OpenAI-compatible endpoint ---
+# Any tool that speaks OpenAI protocol (Claude Code, Cursor, aider, etc.)
+# can point at http://localhost:8000/v1 and use muse as its AI backend.
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    model: str = "muse"
+    messages: list[ChatMessage]
+    max_tokens: int | None = Field(default=2048)
+    temperature: float = 0.7
+
+
+class ChatChoice(BaseModel):
+    index: int = 0
+    message: ChatMessage
+    finish_reason: str = "stop"
+
+
+class ChatUsage(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+
+class ChatResponse(BaseModel):
+    id: str
+    object: str = "chat.completion"
+    created: int
+    model: str
+    choices: list[ChatChoice]
+    usage: ChatUsage
+
+
+@app.post("/v1/chat/completions", response_model=ChatResponse)
+async def chat_completions(req: ChatRequest) -> ChatResponse:
+    """OpenAI-compatible chat completions — use muse as a local AI provider."""
+    # Extract system and user messages
+    system = ""
+    user_prompt = ""
+    for msg in req.messages:
+        if msg.role == "system":
+            system = msg.content
+        elif msg.role == "user":
+            user_prompt = msg.content
+
+    if not system:
+        system = SYSTEM_PROMPT
+
+    max_tokens = req.max_tokens or 2048
+
+    # Route based on model name
+    if req.model == "muse":
+        # Full muse flow: fan-out + judge
+        results = await fan_out(prompt=user_prompt, system=system, max_tokens=max_tokens)
+        answer, _ = await judge(user_prompt, results)
+        total_in = sum(r.input_tokens for r in results)
+        total_out = sum(r.output_tokens for r in results)
+    else:
+        # Route to a specific provider by slug (e.g. "mlx", "claude", "openai")
+        providers = get_all_providers()
+        provider = next((p for p in providers if p.slug == req.model), None)
+        if provider is None:
+            # Fallback: try all available, pick first
+            provider = providers[0] if providers else None
+        if provider is None:
+            answer = "No providers available. Check your API keys or install mlx-lm."
+            total_in, total_out = 0, 0
+        else:
+            result = await provider.generate(user_prompt, system, max_tokens)
+            answer = result.content
+            total_in = result.input_tokens
+            total_out = result.output_tokens
+
+    return ChatResponse(
+        id=f"chatcmpl-{uuid.uuid4().hex[:12]}",
+        created=int(time.time()),
+        model=req.model,
+        choices=[
+            ChatChoice(
+                message=ChatMessage(role="assistant", content=answer),
+            )
+        ],
+        usage=ChatUsage(
+            prompt_tokens=total_in,
+            completion_tokens=total_out,
+            total_tokens=total_in + total_out,
+        ),
+    )
+
+
+@app.get("/v1/models")
+async def list_models() -> dict:
+    """List available models — OpenAI-compatible."""
+    providers = get_all_providers()
+    models = [
+        {
+            "id": p.slug,
+            "object": "model",
+            "owned_by": "muse",
+        }
+        for p in providers
+    ]
+    # Add the special "muse" model (fan-out + judge)
+    models.insert(0, {"id": "muse", "object": "model", "owned_by": "muse"})
+    return {"object": "list", "data": models}
 
 
 def serve(host: str = "127.0.0.1", port: int = 8000) -> None:

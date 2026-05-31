@@ -19,6 +19,7 @@ def get_all_providers() -> list[Provider]:
     """Return all registered providers (only those with API keys configured)."""
     from muse.engine.providers.anthropic import AnthropicProvider
     from muse.engine.providers.gemini import GeminiProvider
+    from muse.engine.providers.mlx_local import MLXLocalProvider
     from muse.engine.providers.openai_provider import OpenAIProvider
     from muse.engine.providers.qwen import QwenProvider
 
@@ -27,6 +28,7 @@ def get_all_providers() -> list[Provider]:
         OpenAIProvider(),
         GeminiProvider(),
         QwenProvider(),
+        MLXLocalProvider(),
     ]
     return [p for p in all_providers if p.is_available()]
 

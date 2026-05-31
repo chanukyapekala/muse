@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     # Judge model — defaults to Claude Opus for best synthesis quality
     judge_model: str = "claude-opus-4-5"
 
+    # MLX on-device model (Apple Silicon only)
+    mlx_model: str = "mlx-community/Llama-3.2-3B-Instruct-4bit"
+
     # Output
     output_dir: str = "ideas"
 

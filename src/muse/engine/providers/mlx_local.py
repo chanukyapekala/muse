@@ -1,6 +1,5 @@
 """MLX on-device provider — local inference on Apple Silicon, zero cost, fully offline."""
 
-import asyncio
 import time
 from pathlib import Path
 
@@ -47,20 +46,27 @@ class MLXLocalProvider:
             )
         return f"{system}\n\n{prompt}" if system else prompt
 
-    async def generate(self, prompt: str, system: str, max_tokens: int = 2048) -> ModelResult:
-        self._ensure_loaded()
+    def _generate_sync(self, formatted: str, max_tokens: int) -> str:
+        """Run MLX generation on the main thread (Metal requires it)."""
         from mlx_lm import generate as mlx_generate
 
-        formatted = self._format_chat(prompt, system)
-
-        start = time.perf_counter()
-        output = await asyncio.to_thread(
-            mlx_generate,
+        output = mlx_generate(
             self._model,
             self._tokenizer,
             prompt=formatted,
             max_tokens=max_tokens,
         )
+        return output if isinstance(output, str) else str(output)
+
+    async def generate(self, prompt: str, system: str, max_tokens: int = 2048) -> ModelResult:
+        self._ensure_loaded()
+
+        formatted = self._format_chat(prompt, system)
+
+        start = time.perf_counter()
+        # MLX uses Metal GPU — must run on the main thread, not in a thread pool.
+        # Blocking the event loop briefly is acceptable for local inference.
+        output = self._generate_sync(formatted, max_tokens)
         latency = int((time.perf_counter() - start) * 1000)
 
         content = output if isinstance(output, str) else str(output)

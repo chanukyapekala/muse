@@ -53,9 +53,7 @@ async def judge(prompt: str, results: list[ModelResult]) -> str:
     if not successful:
         return "# Synthesis\n\nAll models failed — no synthesis possible."
 
-    sections = "\n\n".join(
-        f"---\n## {r.name} response\n\n{r.content}" for r in successful
-    )
+    sections = "\n\n".join(f"---\n## {r.name} response\n\n{r.content}" for r in successful)
 
     user_message = f"""Original prompt: {prompt}
 

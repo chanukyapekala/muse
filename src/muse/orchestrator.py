@@ -1,8 +1,9 @@
 """Orchestrator: fans out the prompt to all models concurrently."""
 
 import asyncio
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
-from typing import Callable, Coroutine, Any
+from typing import Any
 
 
 @dataclass
@@ -40,7 +41,7 @@ async def fan_out(
     Returns:
         List of ModelResult, one per model (including failures).
     """
-    from muse.models.adapters import call_claude, call_openai, call_gemini, call_qwen
+    from muse.models.adapters import call_claude, call_gemini, call_openai, call_qwen
 
     candidates = [
         ("Claude", "claude", call_claude),

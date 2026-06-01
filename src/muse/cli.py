@@ -182,6 +182,25 @@ def models(
 
 
 @app.command()
+def agent(
+    goal: Annotated[str, typer.Argument(help="The goal for the agent to accomplish.")],
+    steps: Annotated[int, typer.Option("--steps", "-s", help="Max steps to execute.")] = 5,
+) -> None:
+    """Run an autonomous agent powered by on-device LLM.
+
+    Requires the muse server to be running (muse serve).
+
+    Examples:\n
+      muse agent "help me study for my CS algorithms exam"\n
+      muse agent "research whether I should learn Rust or Go"\n
+      muse agent --steps 3 "plan a weekend trip to Austin"
+    """
+    from muse.agent import run_agent
+
+    run_agent(goal, max_steps=steps)
+
+
+@app.command()
 def serve(
     host: Annotated[str, typer.Option(help="Host to bind to.")] = "127.0.0.1",
     port: Annotated[int, typer.Option(help="Port to listen on.")] = 8000,

@@ -7,7 +7,7 @@ from pathlib import Path
 import aiofiles
 
 from muse.config import settings
-from muse.orchestrator import ModelResult
+from muse.engine.types import ModelResult
 
 
 def _session_id(prompt: str) -> str:

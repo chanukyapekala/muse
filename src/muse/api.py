@@ -44,7 +44,7 @@ class IdeateResponse(BaseModel):
     answer: str
     trust_score: float | None = None
     total_cost_usd: float = 0.0
-    raw_responses: list[dict] | None = None
+    raw_responses: list[dict[str, object]] | None = None
 
 
 class SessionSummary(BaseModel):
@@ -121,7 +121,7 @@ async def list_sessions(limit: int = 50) -> list[SessionSummary]:
 
 
 @app.get("/sessions/{session_id}")
-async def get_session(session_id: str) -> dict:
+async def get_session(session_id: str) -> dict[str, object]:
     """Retrieve a full session with all model responses."""
     session = await store.get(session_id)
     if session is None:
@@ -150,7 +150,7 @@ async def get_session(session_id: str) -> dict:
 
 
 @app.get("/health")
-async def health() -> dict:
+async def health() -> dict[str, str]:
     """Health check."""
     return {"status": "ok", "service": "muse"}
 
@@ -254,7 +254,7 @@ async def chat_completions(req: ChatRequest) -> ChatResponse:
 
 
 @app.get("/v1/models")
-async def list_models() -> dict:
+async def list_models() -> dict[str, object]:
     """List available models — OpenAI-compatible."""
     providers = get_all_providers()
     models = [

@@ -47,7 +47,8 @@ def _ask(prompt: str, system: str = "", max_tokens: int = 300) -> str:
             timeout=120,
         )
         r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
+        data: dict[str, object] = r.json()
+        return str(data["choices"][0]["message"]["content"])  # type: ignore[index]
     except Exception as e:
         return f"[ERROR: {e}]"
 
@@ -82,7 +83,7 @@ def run_agent(goal: str, max_steps: int = 5) -> None:
     """Run the autonomous agent loop."""
     start_time = time.time()
     total_calls = 0
-    notes: list[dict] = []
+    notes: list[dict[str, str | int]] = []
 
     print(f"\n{BOLD}{'═' * 55}{RESET}")
     print(f"{BOLD}  muse agent — autonomous on-device AI{RESET}")
@@ -167,7 +168,7 @@ Try a completely different approach. Be more specific and practical.""",
     # ── Phase 3: SYNTHESIZE ──
     _log("📝", "SYNTHESIZING", "Combining all findings into a final output...")
 
-    notes_summary = "\n\n".join(f"## {n['step']}\n{n['result'][:300]}" for n in notes)
+    notes_summary = "\n\n".join(f"## {n['step']}\n{str(n['result'])[:300]}" for n in notes)
 
     synthesis = _ask(
         f"""I've completed research on: "{goal}"
@@ -187,7 +188,7 @@ Include a "Key Takeaways" section with 3-5 bullet points and a "Next Steps" sect
 
     # ── Summary ──
     elapsed = time.time() - start_time
-    avg_quality = sum(n["quality"] for n in notes) / len(notes) if notes else 0
+    avg_quality = sum(int(n["quality"]) for n in notes) / len(notes) if notes else 0
 
     print(f"{BOLD}{'═' * 55}{RESET}")
     print(f"{BOLD}  AGENT COMPLETE{RESET}")

@@ -28,8 +28,8 @@ class GeminiProvider:
             name=self.name,
             slug=self.slug,
             content=response.text or "",
-            input_tokens=usage.prompt_token_count if usage else 0,
-            output_tokens=usage.candidates_token_count if usage else 0,
+            input_tokens=usage.prompt_token_count or 0 if usage else 0,
+            output_tokens=usage.candidates_token_count or 0 if usage else 0,
             latency_ms=latency,
         )
 

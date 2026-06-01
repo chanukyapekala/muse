@@ -166,7 +166,7 @@ def models(
             )
             return
         try:
-            from mlx_lm import load
+            from mlx_lm import load  # type: ignore[import-not-found]
 
             console.print(f"Downloading [bold]{model_name}[/bold]...")
             load(model_name)

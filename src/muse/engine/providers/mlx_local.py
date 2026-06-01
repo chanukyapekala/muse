@@ -1,7 +1,10 @@
 """MLX on-device provider — local inference on Apple Silicon, zero cost, fully offline."""
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
+from typing import Any
 
 from muse.engine.types import ModelResult
 
@@ -23,13 +26,13 @@ class MLXLocalProvider:
         from muse.config import settings
 
         self.model_name = model_name or getattr(settings, "mlx_model", DEFAULT_MODEL)
-        self._model = None
-        self._tokenizer = None
+        self._model: Any = None
+        self._tokenizer: Any = None
 
     def _ensure_loaded(self) -> None:
         if self._model is not None:
             return
-        from mlx_lm import load
+        from mlx_lm import load  # type: ignore[import-not-found]
 
         self._model, self._tokenizer = load(self.model_name)
 
@@ -41,9 +44,10 @@ class MLXLocalProvider:
         messages.append({"role": "user", "content": prompt})
 
         if hasattr(self._tokenizer, "apply_chat_template"):
-            return self._tokenizer.apply_chat_template(
+            result: str = self._tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
             )
+            return result
         return f"{system}\n\n{prompt}" if system else prompt
 
     def _generate_sync(self, formatted: str, max_tokens: int) -> str:

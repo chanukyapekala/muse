@@ -11,3 +11,14 @@ build/
 *.egg-info/
 ideas/
 .python-version
+
+# macOS
+.DS_Store
+
+# Xcode / Swift
+MuseApp/.build/
+MuseApp/.swiftpm/
+MuseApp/Muse.xcodeproj/xcuserdata/
+MuseApp/Muse.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcuserstate
+DerivedData/

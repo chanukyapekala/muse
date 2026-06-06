@@ -94,31 +94,37 @@ curl http://localhost:8000/sessions
 ## Architecture
 
 ```
-src/muse/
-  engine/                    ← core (shared across all frontends)
-    types.py                 ← ModelResult, MuseRequest, MuseResponse
-    orchestrator.py          ← async fan-out to providers
-    judge.py                 ← synthesis with trust scoring
+src/muse/                              ← Python backend
+  engine/
+    types.py                           ← ModelResult, MuseRequest, MuseResponse
+    orchestrator.py                    ← async fan-out to providers
+    judge.py                           ← synthesis with trust scoring
     providers/
-      base.py                ← Provider protocol
-      anthropic.py           ← Claude
-      openai_provider.py     ← GPT
-      gemini.py              ← Gemini
-      qwen.py                ← Qwen
+      base.py                          ← Provider protocol
+      anthropic.py / openai_provider.py / gemini.py / qwen.py
     storage/
-      sqlite_store.py        ← local session history (~/.muse/history.db)
-  cli.py                     ← Typer CLI frontend
-  api.py                     ← FastAPI local API server
+      sqlite_store.py                  ← local session history (~/.muse/history.db)
+  cli.py                               ← Typer CLI frontend
+  api.py                               ← FastAPI local API server
+
+MuseApp/                               ← iOS app (SwiftUI + MLX Swift)
+  MuseApp/
+    Engine/MuseEngine.swift            ← fan-out orchestrator + judge
+    Providers/MLXProvider.swift        ← on-device Llama 3.2 3B (4-bit)
+    Providers/AnthropicProvider.swift  ← Claude API
+    Providers/OpenAIProvider.swift     ← OpenAI + OpenRouter
+    Views/                             ← ChatView, SettingsView
 ```
 
 ## Supported models
 
-| Slug | Provider | Default model |
-|------|----------|---------------|
-| `claude` | Anthropic | claude-opus-4-5 |
-| `openai` | OpenAI | gpt-4o |
-| `gemini` | Google | gemini-1.5-pro |
-| `qwen` | Alibaba DashScope | qwen-max |
+| Slug | Provider | Default model | Notes |
+|------|----------|---------------|-------|
+| `mlx` | On-device (MLX Swift) | Llama 3.2 3B Instruct 4-bit | ~1.7 GB RAM, zero cost, offline |
+| `claude` | Anthropic | claude-opus-4-5 | |
+| `openai` | OpenAI | gpt-4o | |
+| `gemini` | Google | gemini-1.5-pro | |
+| `qwen` | Alibaba DashScope | qwen-max | |
 
 Override any model via `.env` — e.g. `OPENAI_MODEL=gpt-4o-mini`.
 
@@ -136,9 +142,9 @@ Override any model via `.env` — e.g. `OPENAI_MODEL=gpt-4o-mini`.
 |-------|------|--------|
 | 1 | Core engine — orchestrator, providers, judge, CLI | Done |
 | 2 | Local API server + SQLite session storage | Done |
-| 3 | MLX on-device provider (Apple Silicon — offline mode) | Next |
-| 4 | iOS app (SwiftUI — prompt → judge answer → done) | Planned |
-| 5 | OpenRouter migration (one API key for 200+ models) | Planned |
+| 3 | MLX on-device provider (Apple Silicon — offline mode) | Done |
+| 4 | iOS app (SwiftUI — prompt → judge answer → done) | Done |
+| 5 | OpenRouter migration (one API key for 200+ models) | Next |
 | 6 | Persona library (`--persona "code reviewer"`) | Planned |
 
 ## Development

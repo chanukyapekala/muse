@@ -17,7 +17,7 @@ class MLXProvider: ModelProvider, ObservableObject {
     @Published var status: String = ""
     @Published var downloadProgress: Double = 0
 
-    init(modelID: String = "mlx-community/Llama-3.2-1B-Instruct-4bit") {
+    init(modelID: String = "mlx-community/Llama-3.2-3B-Instruct-4bit") {
         self.modelID = modelID
     }
 
@@ -26,7 +26,7 @@ class MLXProvider: ModelProvider, ObservableObject {
 
         await MainActor.run { status = "Loading model..." }
 
-        MLX.GPU.set(cacheLimit: 20 * 1024 * 1024)
+        MLX.GPU.set(cacheLimit: 512 * 1024 * 1024)
         let config = ModelConfiguration(id: modelID)
 
         let downloader = HubBridge(HubClient()) { [weak self] progress in
@@ -62,8 +62,13 @@ class MLXProvider: ModelProvider, ObservableObject {
         )
 
         var output = ""
+        var tokenCount = 0
         for try await text in session.streamResponse(to: prompt) {
             output += text
+            tokenCount += 1
+            if tokenCount >= maxTokens {
+                break
+            }
         }
 
         let latency = Int((CFAbsoluteTimeGetCurrent() - start) * 1000)

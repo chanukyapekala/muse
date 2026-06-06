@@ -17,7 +17,7 @@ class MLXProvider: ModelProvider, ObservableObject {
     @Published var status: String = ""
     @Published var downloadProgress: Double = 0
 
-    init(modelID: String = "mlx-community/Llama-3.2-1B-Instruct-4bit") {
+    init(modelID: String = "mlx-community/Phi-4-mini-instruct-4bit") {
         self.modelID = modelID
     }
 

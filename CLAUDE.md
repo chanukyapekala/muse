@@ -20,13 +20,13 @@ muse is a **private, multi-model AI synthesis tool**. You type a prompt, multipl
 - **CLI** (`cli.py`) — `muse "prompt"` for synthesis, `muse serve` to start local API
 - **API** (`api.py`) — FastAPI server, localhost-only, `POST /muse` → judge answer + trust score
 - **Tests** — 15 tests covering orchestrator, judge, API, and storage
+- **iOS app** (`MuseApp/`) — SwiftUI chat UI with on-device MLX inference and cloud provider fan-out
+- **MLX on-device provider** — Llama 3.2 3B Instruct 4-bit via MLX Swift, zero cost, fully offline
 
 ### Not yet built
 
 | Item | Phase | Notes |
 |------|-------|-------|
-| MLX on-device provider | 3 | Apple Silicon local inference, offline mode |
-| iOS app | 4 | SwiftUI, reimplements engine in Swift, MLX Swift for on-device |
 | OpenRouter | 5 | Single API key for 200+ models, replaces per-provider keys |
 | Persona library | 6 | `--persona` flag, presets in `personas.toml` |
 | Cost tracking display | 5 | Token counts are captured but not surfaced in CLI/API |
@@ -54,9 +54,18 @@ src/muse/
   api.py                     ← FastAPI local server (presentation only)
   config.py                  ← Pydantic Settings, .env-driven
   writer.py                  ← Filesystem session writer (legacy, kept for backward compat)
+
+MuseApp/
+  MuseApp/
+    Engine/                    ← Swift orchestrator + judge (MuseEngine.swift)
+    Providers/                 ← MLXProvider (Llama 3.2 3B), AnthropicProvider, OpenAIProvider
+    Storage/                   ← Keychain for API keys
+    Views/                     ← ChatView, SettingsView
 ```
 
-**Adding a new provider:** Create a class in `engine/providers/` implementing `Provider` protocol (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
+**Adding a new provider (Python):** Create a class in `engine/providers/` implementing `Provider` protocol (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
+
+**Adding a new provider (iOS):** Create a class conforming to `ModelProvider` protocol in `MuseApp/Providers/`, then register it in `MuseEngine.reloadProviders()`.
 
 **Frontend contract:** All frontends (CLI, API, iOS) consume `MuseResponse` — which contains `answer` (judge synthesis), `trust_score`, and `raw_responses` (expandable on demand).
 
@@ -64,36 +73,13 @@ src/muse/
 
 ## Roadmap
 
-### Phase 3 — MLX On-Device Provider
+### Phase 3 — MLX On-Device Provider ✓
 
-The compelling feature. Local inference on Apple Silicon, zero cost, works offline.
+Done. Llama 3.2 3B Instruct 4-bit via MLX Swift (~1.7 GB RAM). GPU cache set to 512 MB, token cap enforced during generation.
 
-- Add `mlx-lm` as optional dependency (Apple Silicon only)
-- Implement `engine/providers/mlx_local.py` conforming to `Provider`
-- Model management: `muse models download llama-3.2-3b`
-- Target: quantized 1-3B models (Llama 3.2 1B = ~800MB RAM, 3B = ~2GB)
-- `muse --model mlx "prompt"` for local-only mode
-- `cost_usd = 0.0`, `provider_type = "local"`
+### Phase 4 — iOS App ✓
 
-### Phase 4 — iOS App
-
-SwiftUI app, Swift-native (no Python bridging). Reimplements ~300 lines of orchestration logic.
-
-- **UX:** Prompt input → one judge answer with trust score → expandable raw responses toggle
-- Cloud providers via URLSession direct API calls
-- On-device via MLX Swift (`mlx-swift`)
-- API keys in iOS Keychain
-- Session history in SwiftData/SQLite
-- Lightweight: <20MB binary, models downloaded on demand
-
-```
-MuseApp/
-  Sources/
-    Engine/          ← Swift orchestrator + judge
-    Providers/       ← Cloud + MLX Swift adapters
-    Storage/         ← SQLite + Keychain
-    Views/           ← IdeateView, ResultsView, SettingsView
-```
+Done. SwiftUI chat UI in `MuseApp/`. On-device MLX + cloud providers (Anthropic, OpenAI, Gemini via OpenRouter). API keys in Keychain.
 
 ### Phase 5 — OpenRouter Migration
 

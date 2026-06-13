@@ -4,7 +4,9 @@ import SwiftUI
 
 struct IdeateView: View {
     @EnvironmentObject var engine: MuseEngine
+    @StateObject private var speech = SpeechRecognizer()
     @State private var prompt = ""
+    @State private var promptBeforeRecording = ""
     @FocusState private var isPromptFocused: Bool
 
     var body: some View {
@@ -244,17 +246,27 @@ struct IdeateView: View {
 
     private var inputBar: some View {
         VStack(spacing: 0) {
+            if case let .unavailable(message) = speech.status {
+                Text(message)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 6)
+            }
             Divider()
             HStack(alignment: .bottom, spacing: 10) {
                 TextField(inputPlaceholder, text: $prompt, axis: .vertical)
                     .lineLimit(1...6)
                     .textFieldStyle(.plain)
                     .focused($isPromptFocused)
-                    .disabled(!engine.isModelReady)
+                    .disabled(!engine.isModelReady || speech.status == .recording)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(Color(white: 0.15))
                     .clipShape(RoundedRectangle(cornerRadius: 22))
+
+                micButton
 
                 Button {
                     let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -273,15 +285,52 @@ struct IdeateView: View {
             .padding(.vertical, 8)
         }
         .background(.regularMaterial)
+        .onChange(of: speech.transcript) {
+            guard speech.status == .recording else { return }
+            let separator = promptBeforeRecording.isEmpty ? "" : " "
+            prompt = promptBeforeRecording + separator + speech.transcript
+        }
+    }
+
+    private var micButton: some View {
+        Button {
+            Task { await toggleRecording() }
+        } label: {
+            Image(systemName: speech.status == .recording ? "mic.fill" : "mic")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(micForeground)
+                .frame(width: 36, height: 36)
+                .background(speech.status == .recording ? Color.red.opacity(0.25) : Color.clear)
+                .clipShape(Circle())
+        }
+        .disabled(!engine.isModelReady || engine.isLoading)
+    }
+
+    private var micForeground: Color {
+        if !engine.isModelReady || engine.isLoading { return Color.gray.opacity(0.5) }
+        if speech.status == .recording { return .red }
+        return .white
+    }
+
+    private func toggleRecording() async {
+        if speech.status == .recording {
+            speech.stop()
+        } else {
+            promptBeforeRecording = prompt
+            await speech.start()
+        }
     }
 
     private var inputPlaceholder: String {
-        engine.isModelReady ? "Reply to Muse..." : "Setting up Muse..."
+        if !engine.isModelReady { return "Setting up Muse..." }
+        if speech.status == .recording { return "Listening..." }
+        return "Reply to Muse..."
     }
 
     private var sendButtonEnabled: Bool {
         engine.isModelReady
             && !engine.isLoading
+            && speech.status != .recording
             && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 

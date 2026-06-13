@@ -4,25 +4,25 @@
 
 muse is a **private, multi-model AI synthesis tool** built around one core mechanic: fan out a prompt to several models in parallel, then have a judge return one authoritative answer with a trust score. The user sees the answer, not the noise.
 
-muse ships as **two products that share the engine, judge concept, and privacy posture**:
+muse ships as **two products with different shapes but a shared privacy posture**:
 
-| Product | Audience | Distribution | Use case |
+| Product | Audience | Distribution | Shape |
 |---|---|---|---|
-| **muse CLI** | Developers | `pip install muse-ai` (PyPI) | Multi-model code synthesis + validation in the terminal |
-| **muse iOS** | Students, individuals | App Store (lightweight) | Private multi-model chat on-device with optional cloud providers |
+| **muse CLI** | Developers | `pip install muse-ai` (PyPI) | Multi-model code synthesis + judged validation in the terminal |
+| **muse iOS** | Students, individuals | App Store (lightweight) | **Single-model on-device chat** — no network, no accounts, no API keys |
 
-**Privacy is non-negotiable.** No muse server, no telemetry. Prompts go device-to-API. On-device MLX mode is fully airgapped.
+**Privacy is non-negotiable.** On iOS this is structural: zero LLM network calls, the model and inference both run on-device via MLX. On CLI, prompts go device-to-API directly (no muse server, no telemetry).
 
-**BYOK pricing** replaces $20/mo subs with pay-per-token; on-device MLX gives a $0 offline mode.
+The CLI keeps the multi-model judge story (that's its differentiator). iOS deliberately drops it — one model, simpler product, easier App Store review.
 
 ---
 
 ## Strategic positioning
 
-The structurally unique thing about muse — what no aggregator (Poe, ChatHub, TypingMind) ships — is the **judge + trust score**. Product strategy doubles down on that:
+The two products have different moats:
 
 - **CLI** — framed as a "code synthesis validation deck." Use an **asymmetric pool** (cheap/local generators + one frontier judge) to keep cost low. Move from LLM-vibes confidence to **deterministic trust signals**: AST equivalence for code, textual similarity for prose. Organic growth via PR-attached confidence blocks; enterprise-friendly because the offline mode passes data-exfiltration review.
-- **iOS** — leans into privacy + on-device. Lightweight binary, chat UI, models downloaded on demand. Differentiator vs. ChatGPT/Claude apps is private multi-model judging in your pocket with $0 cost in offline mode.
+- **iOS** — leans into structural privacy. Bundled MLX model (Llama 3.2 1B 4-bit), no network calls, no accounts, no setup. The niche to own: polished + bundled-model + zero-network + works-on-any-A14+-device. Existing on-device chat apps (LLM Farm, Private LLM, MLC Chat) either require model setup, charge upfront, or feel like research demos.
 
 ---
 
@@ -34,7 +34,7 @@ The structurally unique thing about muse — what no aggregator (Poe, ChatHub, T
 - **Python providers** — Anthropic, OpenAI, Gemini, Qwen, plus on-device `mlx_local.py`
 - **CLI** (`muse "prompt"`) + **local FastAPI server** (`muse serve`)
 - **SQLite session storage** at `~/.muse/history.db`
-- **iOS app** (`MuseApp/`) — SwiftUI chat UI, on-device MLX (Llama 3.2 3B Instruct 4-bit), cloud providers, API keys in iOS Keychain
+- **iOS app** (`MuseApp/`) — SwiftUI chat UI, on-device MLX (Llama 3.2 1B Instruct 4-bit). No cloud providers, no API keys, no Keychain — fully on-device.
 
 ### Partial
 
@@ -62,19 +62,21 @@ src/muse/                              ← Python backend (CLI target)
 
 MuseApp/                               ← iOS app (App Store target)
   MuseApp/
-    Engine/MuseEngine.swift            ← fan-out orchestrator + judge
+    App/MuseApp.swift                  ← entry point
+    Engine/
+      MuseEngine.swift                 ← single on-device MLX call
+      Types.swift                      ← ModelResult, MuseResponse
     Providers/
-      MLXProvider.swift                ← on-device Llama 3.2 3B (4-bit)
-      AnthropicProvider.swift / OpenAIProvider.swift
-    Storage/                           ← Keychain for API keys
-    Views/                             ← ChatView, SettingsView
+      ProviderProtocol.swift           ← future-proofing for adding a second on-device model
+      MLXProvider.swift                ← Llama 3.2 1B 4-bit via MLX Swift
+    Views/                             ← IdeateView, HistoryView, SettingsView
 ```
 
-**Adding a new provider (Python):** Create a class in `engine/providers/` implementing `Provider` (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
+**Adding a new provider (Python CLI):** Create a class in `engine/providers/` implementing `Provider` (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
 
-**Adding a new provider (iOS):** Create a class conforming to `ModelProvider` in `MuseApp/Providers/`, then register it in `MuseEngine.reloadProviders()`.
+**iOS provider strategy:** iOS is intentionally single-model for v1. `ProviderProtocol` is kept so we can drop in a second on-device model later without re-architecting.
 
-**Frontend contract:** All frontends consume `MuseResponse` — `answer` (judge synthesis), `trust_score`, `raw_responses` (expandable on demand).
+**Frontend contract (CLI):** `MuseResponse` — `answer` (judge synthesis), `trust_score`, `raw_responses` (expandable on demand). iOS has its own simpler `MuseResponse` (prompt + answer + createdAt).
 
 ---
 
@@ -104,12 +106,16 @@ MuseApp/                               ← iOS app (App Store target)
 
 ### iOS track
 
-**Goal:** lightweight App Store binary — small download, models pulled on demand.
+**Goal:** App Store v1 — single bundled on-device model, "install and chat."
 
-- Trim dependencies and bundle size
-- Persist chat history (SwiftData)
-- Carry persona presets across from the Python side
+- Llama 3.2 1B 4-bit baked in via MLX (already wired)
+- Chat history opt-in toggle (Settings); SwiftData persistence backend as follow-up
+- `PrivacyInfo.xcprivacy` manifest + `Info.plist` for `ITSAppUsesNonExemptEncryption=NO`
+- Onboarding screen explaining the on-device default
+- App icon polish + haptic feedback on send/receive
 - TestFlight validation before App Store submission
+
+**Out of scope for v1** (consider for later releases): multiple on-device models with judge, persona presets, SwiftData chat history backing the toggle.
 
 ---
 

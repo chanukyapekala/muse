@@ -1,63 +1,31 @@
-// SettingsView.swift — API key management (BYOK)
+// SettingsView.swift — No accounts, no keys. Just a chat-history toggle and About.
 
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var engine: MuseEngine
-    @State private var anthropicKey = ""
-    @State private var openaiKey = ""
-    @State private var openrouterKey = ""
-    @State private var saved = false
-
-    private let keychain = KeychainManager.shared
+    @AppStorage("saveChatHistory") private var saveChatHistory = false
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Your API keys are stored in the iOS Keychain. They never leave your device.")
+                    Label("Runs fully on-device. No accounts, no API keys, no network calls for chat.", systemImage: "lock.shield")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Anthropic (Claude)") {
-                    SecureField("sk-ant-...", text: $anthropicKey)
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                    keyStatus(key: "anthropic_api_key")
-                }
-
-                Section("OpenAI (GPT)") {
-                    SecureField("sk-...", text: $openaiKey)
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                    keyStatus(key: "openai_api_key")
-                }
-
-                Section("OpenRouter") {
-                    SecureField("sk-or-...", text: $openrouterKey)
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                    keyStatus(key: "openrouter_api_key")
-                }
-
-                Section {
-                    Button("Save Keys") {
-                        saveKeys()
-                    }
-                    .frame(maxWidth: .infinity)
-                    .disabled(anthropicKey.isEmpty && openaiKey.isEmpty && openrouterKey.isEmpty)
-
-                    if saved {
-                        Label("Keys saved securely", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.subheadline)
-                    }
+                Section("Chat history") {
+                    Toggle("Save chat history on this device", isOn: $saveChatHistory)
+                    Text(saveChatHistory
+                         ? "Conversations are saved locally on this device only."
+                         : "Conversations vanish when you close the app.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("About") {
                     LabeledContent("Version", value: "0.1.0")
-                    LabeledContent("Models available", value: "\(engine.availableProviders.count)")
+                    LabeledContent("Model", value: "Llama 3.2 1B (on-device)")
                 }
             }
             .navigationTitle("Settings")
@@ -65,43 +33,5 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
         }
-    }
-
-    private func keyStatus(key: String) -> some View {
-        HStack {
-            if keychain.exists(key: key) {
-                Label("Configured", systemImage: "checkmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                Spacer()
-                Button("Remove", role: .destructive) {
-                    keychain.delete(key: key)
-                    engine.reloadProviders()
-                }
-                .font(.caption)
-            } else {
-                Label("Not set", systemImage: "xmark.circle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private func saveKeys() {
-        if !anthropicKey.isEmpty {
-            keychain.save(key: "anthropic_api_key", value: anthropicKey)
-            anthropicKey = ""
-        }
-        if !openaiKey.isEmpty {
-            keychain.save(key: "openai_api_key", value: openaiKey)
-            openaiKey = ""
-        }
-        if !openrouterKey.isEmpty {
-            keychain.save(key: "openrouter_api_key", value: openrouterKey)
-            openrouterKey = ""
-        }
-        engine.reloadProviders()
-        saved = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { saved = false }
     }
 }

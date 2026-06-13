@@ -20,6 +20,7 @@ class SpeechRecognizer: ObservableObject {
     private let audioEngine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
+    private var committedTranscript: String = ""
 
     var supportsOnDevice: Bool {
         recognizer?.supportsOnDeviceRecognition ?? false
@@ -62,6 +63,7 @@ class SpeechRecognizer: ObservableObject {
             try startEngine(recognizer: recognizer)
             status = .recording
             transcript = ""
+            committedTranscript = ""
         } catch {
             status = .unavailable(error.localizedDescription)
         }
@@ -92,11 +94,6 @@ class SpeechRecognizer: ObservableObject {
     }
 
     private func startEngine(recognizer: SFSpeechRecognizer) throws {
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = true
-        self.request = request
-
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
 
@@ -107,13 +104,38 @@ class SpeechRecognizer: ObservableObject {
         audioEngine.prepare()
         try audioEngine.start()
 
+        startRecognitionRequest(recognizer: recognizer)
+    }
+
+    private func startRecognitionRequest(recognizer: SFSpeechRecognizer) {
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.requiresOnDeviceRecognition = true
+        self.request = request
+
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
             Task { @MainActor in
+                guard let self else { return }
+
                 if let result {
-                    self?.transcript = result.bestTranscription.formattedString
+                    let utterance = result.bestTranscription.formattedString
+                    let separator = self.committedTranscript.isEmpty ? "" : " "
+                    self.transcript = self.committedTranscript + separator + utterance
+
+                    if result.isFinal {
+                        self.committedTranscript += separator + utterance
+                        self.transcript = self.committedTranscript
+                        // Restart recognition so further speech is captured.
+                        if self.status == .recording {
+                            self.task?.cancel()
+                            self.startRecognitionRequest(recognizer: recognizer)
+                        }
+                        return
+                    }
                 }
-                if error != nil || result?.isFinal == true {
-                    self?.stop()
+
+                if error != nil {
+                    self.stop()
                 }
             }
         }

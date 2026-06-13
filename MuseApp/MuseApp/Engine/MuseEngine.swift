@@ -10,6 +10,7 @@ class MuseEngine: ObservableObject {
     @Published var currentResponse: MuseResponse?
     @Published var error: String?
     @Published var lastPrompt: String = ""
+    @Published var isModelReady: Bool = false
 
     let mlxProvider = MLXProvider()
     private var cancellables = Set<AnyCancellable>()
@@ -23,6 +24,16 @@ class MuseEngine: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        mlxProvider.$isReady
+            .receive(on: RunLoop.main)
+            .assign(to: \.isModelReady, on: self)
+            .store(in: &cancellables)
+
+        // Preload model on launch so the first prompt doesn't have to wait.
+        Task { [mlxProvider] in
+            try? await mlxProvider.loadModel()
+        }
     }
 
     func ideate(prompt: String) async {

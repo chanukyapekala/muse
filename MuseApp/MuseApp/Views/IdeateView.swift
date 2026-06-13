@@ -87,15 +87,40 @@ struct IdeateView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            Label("On-device only", systemImage: "lock.shield")
-                .font(.caption)
-                .foregroundStyle(.green)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.green.opacity(0.1))
-                .clipShape(Capsule())
+            if engine.isModelReady {
+                Label("On-device only", systemImage: "lock.shield")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.green.opacity(0.1))
+                    .clipShape(Capsule())
+            } else {
+                setupBanner
+            }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var setupBanner: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.7)
+                Text(engine.loadingStatus.isEmpty ? "Setting up..." : engine.loadingStatus)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.primary)
+            }
+            Text("First-time setup downloads Llama 3.2 1B (~700 MB). Wi-Fi recommended.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color.blue.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 24)
     }
 
     // MARK: - User bubble
@@ -221,10 +246,11 @@ struct IdeateView: View {
         VStack(spacing: 0) {
             Divider()
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("Reply to Muse...", text: $prompt, axis: .vertical)
+                TextField(inputPlaceholder, text: $prompt, axis: .vertical)
                     .lineLimit(1...6)
                     .textFieldStyle(.plain)
                     .focused($isPromptFocused)
+                    .disabled(!engine.isModelReady)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(Color(white: 0.15))
@@ -239,17 +265,24 @@ struct IdeateView: View {
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundStyle(
-                            prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                ? Color.gray.opacity(0.5) : .white
-                        )
+                        .foregroundStyle(sendButtonEnabled ? .white : Color.gray.opacity(0.5))
                 }
-                .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || engine.isLoading)
+                .disabled(!sendButtonEnabled)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
         }
         .background(.regularMaterial)
+    }
+
+    private var inputPlaceholder: String {
+        engine.isModelReady ? "Reply to Muse..." : "Setting up Muse..."
+    }
+
+    private var sendButtonEnabled: Bool {
+        engine.isModelReady
+            && !engine.isLoading
+            && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Block parser

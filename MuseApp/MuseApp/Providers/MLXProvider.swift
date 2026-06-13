@@ -16,6 +16,7 @@ class MLXProvider: ModelProvider, ObservableObject {
 
     @Published var status: String = ""
     @Published var downloadProgress: Double = 0
+    @Published var isReady: Bool = false
 
     init(modelID: String = "mlx-community/Llama-3.2-1B-Instruct-4bit") {
         self.modelID = modelID
@@ -43,7 +44,10 @@ class MLXProvider: ModelProvider, ObservableObject {
             configuration: config
         )
         isModelLoaded = true
-        await MainActor.run { status = "" }
+        await MainActor.run {
+            status = ""
+            isReady = true
+        }
     }
 
     func generate(prompt: String, system: String, maxTokens: Int) async throws -> ModelResult {

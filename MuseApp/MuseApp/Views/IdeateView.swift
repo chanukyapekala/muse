@@ -5,7 +5,6 @@ import SwiftUI
 struct IdeateView: View {
     @EnvironmentObject var engine: MuseEngine
     @State private var prompt = ""
-    @State private var showRaw = false
     @FocusState private var isPromptFocused: Bool
 
     var body: some View {
@@ -88,16 +87,13 @@ struct IdeateView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
-            let cloudCount = engine.availableProviders.filter { $0.slug != "mlx" }.count
-            if cloudCount == 0 {
-                Label("On-device mode", systemImage: "lock.shield")
-                    .font(.caption)
-                    .foregroundStyle(.green)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.green.opacity(0.1))
-                    .clipShape(Capsule())
-            }
+            Label("On-device only", systemImage: "lock.shield")
+                .font(.caption)
+                .foregroundStyle(.green)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.green.opacity(0.1))
+                .clipShape(Capsule())
         }
         .frame(maxWidth: .infinity)
     }
@@ -121,37 +117,7 @@ struct IdeateView: View {
 
     private func responseSection(_ response: MuseResponse) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Trust score
-            if let score = response.trustScore {
-                HStack(spacing: 6) {
-                    Image(systemName: trustIcon(score))
-                        .font(.caption)
-                    Text("Trust \(Int(score * 100))%")
-                        .font(.caption.weight(.medium))
-                }
-                .foregroundStyle(trustColor(score))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(trustColor(score).opacity(0.12))
-                .clipShape(Capsule())
-            }
-
-            // Markdown-rendered answer
             markdownView(response.answer)
-
-            // Raw responses
-            if !response.rawResponses.isEmpty {
-                DisclosureGroup(isExpanded: $showRaw) {
-                    ForEach(response.rawResponses) { result in
-                        rawResultCard(result)
-                    }
-                } label: {
-                    Label("Raw responses (\(response.rawResponses.count) models)", systemImage: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .tint(.secondary)
-            }
         }
     }
 
@@ -220,40 +186,6 @@ struct IdeateView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Raw result card
-
-    private func rawResultCard(_ result: ModelResult) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(result.name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Spacer()
-                if result.latencyMs > 0 {
-                    Text("\(result.latencyMs)ms")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            if let error = result.error {
-                Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            } else {
-                Text(result.content)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(10)
-                    .textSelection(.enabled)
-            }
-        }
-        .padding(10)
-        .background(Color(white: 0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .padding(.top, 4)
-    }
-
     // MARK: - Error
 
     private func errorCard(_ message: String) -> some View {
@@ -318,20 +250,6 @@ struct IdeateView: View {
             .padding(.vertical, 8)
         }
         .background(.regularMaterial)
-    }
-
-    // MARK: - Helpers
-
-    private func trustIcon(_ score: Double) -> String {
-        if score >= 0.8 { return "checkmark.shield.fill" }
-        if score >= 0.5 { return "shield.lefthalf.filled" }
-        return "exclamationmark.shield"
-    }
-
-    private func trustColor(_ score: Double) -> Color {
-        if score >= 0.8 { return .green }
-        if score >= 0.5 { return .orange }
-        return .red
     }
 
     // MARK: - Block parser

@@ -21,17 +21,9 @@ struct HistoryView: View {
                             Text(session.prompt)
                                 .font(.subheadline.weight(.medium))
                                 .lineLimit(2)
-                            HStack {
-                                if let score = session.trustScore {
-                                    Text("Trust: \(Int(score * 100))%")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(session.createdAt, style: .relative)
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
+                            Text(session.createdAt, style: .relative)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, 2)
                     }

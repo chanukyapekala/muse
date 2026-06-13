@@ -2,98 +2,114 @@
 
 ## Vision
 
-muse is a **private, multi-model AI synthesis tool**. You type a prompt, multiple models respond concurrently, and a judge produces one authoritative answer with a trust score. The user sees the answer, not the noise.
+muse is a **private, multi-model AI synthesis tool** built around one core mechanic: fan out a prompt to several models in parallel, then have a judge return one authoritative answer with a trust score. The user sees the answer, not the noise.
 
-**Target audience:** Students and individuals who want a cheaper, private alternative to ChatGPT/Claude subscriptions. BYOK (bring your own API keys) means pay-per-token instead of $20/mo, and on-device inference via MLX means $0 for offline use.
+muse ships as **two products that share the engine, judge concept, and privacy posture**:
 
-**Privacy is non-negotiable.** No muse server, no telemetry, no data leakage. Prompts go directly from device to model API. On-device MLX mode is fully airgapped.
+| Product | Audience | Distribution | Use case |
+|---|---|---|---|
+| **muse CLI** | Developers | `pip install muse-ai` (PyPI) | Multi-model code synthesis + validation in the terminal |
+| **muse iOS** | Students, individuals | App Store (lightweight) | Private multi-model chat on-device with optional cloud providers |
+
+**Privacy is non-negotiable.** No muse server, no telemetry. Prompts go device-to-API. On-device MLX mode is fully airgapped.
+
+**BYOK pricing** replaces $20/mo subs with pay-per-token; on-device MLX gives a $0 offline mode.
 
 ---
 
-## Current state
+## Strategic positioning
 
-### Done
+The structurally unique thing about muse — what no aggregator (Poe, ChatHub, TypingMind) ships — is the **judge + trust score**. Product strategy doubles down on that:
 
-- **Engine** (`src/muse/engine/`) — provider-based architecture with `Provider` protocol, async fan-out orchestrator, provider-agnostic judge with trust scoring
-- **Providers** — Anthropic, OpenAI, Gemini, Qwen (each as a class implementing `Provider`)
-- **Storage** — SQLite backend at `~/.muse/history.db` for session persistence
-- **CLI** (`cli.py`) — `muse "prompt"` for synthesis, `muse serve` to start local API
-- **API** (`api.py`) — FastAPI server, localhost-only, `POST /muse` → judge answer + trust score
-- **Tests** — 15 tests covering orchestrator, judge, API, and storage
-- **iOS app** (`MuseApp/`) — SwiftUI chat UI with on-device MLX inference and cloud provider fan-out
-- **MLX on-device provider** — Llama 3.2 3B Instruct 4-bit via MLX Swift, zero cost, fully offline
+- **CLI** — framed as a "code synthesis validation deck." Use an **asymmetric pool** (cheap/local generators + one frontier judge) to keep cost low. Move from LLM-vibes confidence to **deterministic trust signals**: AST equivalence for code, textual similarity for prose. Organic growth via PR-attached confidence blocks; enterprise-friendly because the offline mode passes data-exfiltration review.
+- **iOS** — leans into privacy + on-device. Lightweight binary, chat UI, models downloaded on demand. Differentiator vs. ChatGPT/Claude apps is private multi-model judging in your pocket with $0 cost in offline mode.
 
-### Not yet built
+---
 
-| Item | Phase | Notes |
-|------|-------|-------|
-| OpenRouter | 5 | Single API key for 200+ models, replaces per-provider keys |
-| Persona library | 6 | `--persona` flag, presets in `personas.toml` |
-| Cost tracking display | 5 | Token counts are captured but not surfaced in CLI/API |
+## Current state (on `main`)
+
+### Shipped
+
+- **Python engine** (`src/muse/engine/`) — `Provider` protocol, async fan-out orchestrator, judge with trust scoring
+- **Python providers** — Anthropic, OpenAI, Gemini, Qwen, plus on-device `mlx_local.py`
+- **CLI** (`muse "prompt"`) + **local FastAPI server** (`muse serve`)
+- **SQLite session storage** at `~/.muse/history.db`
+- **iOS app** (`MuseApp/`) — SwiftUI chat UI, on-device MLX (Llama 3.2 3B Instruct 4-bit), cloud providers, API keys in iOS Keychain
+
+### Partial
+
+- **Personas** — `src/muse/personas.toml` exists and is wired into the API + orchestrator. CLI `--persona` flag not yet added.
+- **Cost tracking** — `ModelResult` carries token + cost fields; CLI/API don't surface them.
 
 ---
 
 ## Architecture
 
 ```
-src/muse/
-  engine/                    ← core (shared contract for all frontends)
-    types.py                 ← ModelResult, MuseRequest, MuseResponse
-    orchestrator.py          ← fan_out() — async concurrent dispatch to providers
-    judge.py                 ← judge() — synthesis + trust score extraction
+src/muse/                              ← Python backend (CLI target)
+  engine/
+    types.py                           ← ModelResult, MuseRequest, MuseResponse
+    orchestrator.py                    ← async fan-out to providers
+    judge.py                           ← synthesis with trust scoring
     providers/
-      base.py                ← Provider protocol (slug, name, generate, is_available)
-      anthropic.py           ← Claude
-      openai_provider.py     ← GPT
-      gemini.py              ← Gemini
-      qwen.py                ← Qwen
+      base.py                          ← Provider protocol
+      anthropic.py / openai_provider.py / gemini.py / qwen.py / mlx_local.py
     storage/
-      base.py                ← StorageBackend protocol
-      sqlite_store.py        ← SQLite implementation
-  cli.py                     ← Typer CLI (presentation only)
-  api.py                     ← FastAPI local server (presentation only)
-  config.py                  ← Pydantic Settings, .env-driven
-  writer.py                  ← Filesystem session writer (legacy, kept for backward compat)
+      sqlite_store.py                  ← local session history (~/.muse/history.db)
+  cli.py                               ← Typer CLI frontend
+  api.py                               ← FastAPI local API server
+  personas.toml                        ← persona presets
 
-MuseApp/
+MuseApp/                               ← iOS app (App Store target)
   MuseApp/
-    Engine/                    ← Swift orchestrator + judge (MuseEngine.swift)
-    Providers/                 ← MLXProvider (Llama 3.2 3B), AnthropicProvider, OpenAIProvider
-    Storage/                   ← Keychain for API keys
-    Views/                     ← ChatView, SettingsView
+    Engine/MuseEngine.swift            ← fan-out orchestrator + judge
+    Providers/
+      MLXProvider.swift                ← on-device Llama 3.2 3B (4-bit)
+      AnthropicProvider.swift / OpenAIProvider.swift
+    Storage/                           ← Keychain for API keys
+    Views/                             ← ChatView, SettingsView
 ```
 
-**Adding a new provider (Python):** Create a class in `engine/providers/` implementing `Provider` protocol (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
+**Adding a new provider (Python):** Create a class in `engine/providers/` implementing `Provider` (slug, name, generate, is_available), then register it in `engine/orchestrator.py:get_all_providers()`.
 
-**Adding a new provider (iOS):** Create a class conforming to `ModelProvider` protocol in `MuseApp/Providers/`, then register it in `MuseEngine.reloadProviders()`.
+**Adding a new provider (iOS):** Create a class conforming to `ModelProvider` in `MuseApp/Providers/`, then register it in `MuseEngine.reloadProviders()`.
 
-**Frontend contract:** All frontends (CLI, API, iOS) consume `MuseResponse` — which contains `answer` (judge synthesis), `trust_score`, and `raw_responses` (expandable on demand).
+**Frontend contract:** All frontends consume `MuseResponse` — `answer` (judge synthesis), `trust_score`, `raw_responses` (expandable on demand).
 
 ---
 
 ## Roadmap
 
-### Phase 3 — MLX On-Device Provider ✓
+### CLI track
 
-Done. Llama 3.2 3B Instruct 4-bit via MLX Swift (~1.7 GB RAM). GPU cache set to 512 MB, token cap enforced during generation.
+**Phase 5 — OpenRouter migration + `muse init`** *(next)*
+- Single `OPENROUTER_API_KEY` replaces per-provider keys
+- `muse init` interactive setup writes `~/.config/muse/config.toml`
+- Data-driven model roster (no hardcoded provider classes)
+- Surface cost tracking from unified OpenRouter usage metadata
 
-### Phase 4 — iOS App ✓
+**Phase 6 — Local context + repo awareness**
+- `context.py` repository crawler (respects `.gitignore` / `.museignore`)
+- Pre-filter code chunks and docs relevant to the prompt
+- Wire pre-filtered context into the asymmetric pool
 
-Done. SwiftUI chat UI in `MuseApp/`. On-device MLX + cloud providers (Anthropic, OpenAI, Gemini via OpenRouter). API keys in Keychain.
+**Phase 6b — Deterministic trust signals**
+- Pairwise textual similarity across responses
+- Python AST equivalence for code blocks — different model outputs that parse to the same AST lock confidence to 1.0
+- Replace/augment the current LLM-judged trust score
 
-### Phase 5 — OpenRouter Migration
+**Phase 7 — PyPI distribution**
+- Publish as `muse-ai` for `pip install muse-ai`
+- Pin runtime deps in `pyproject.toml`
 
-Replace per-provider API keys with single OpenRouter endpoint.
+### iOS track
 
-- Single `OPENROUTER_API_KEY` in `.env`
-- Model roster becomes data-driven (config list, not hardcoded classes)
-- Cost tracking from unified OpenRouter usage metadata
+**Goal:** lightweight App Store binary — small download, models pulled on demand.
 
-### Phase 6 — Persona Library
-
-- `--persona "code reviewer"` CLI flag
-- Built-in presets in `personas.toml`: code-reviewer, creative-writer, product-manager, devil-advocate
-- Persona string injected as system prompt prefix
+- Trim dependencies and bundle size
+- Persist chat history (SwiftData)
+- Carry persona presets across from the Python side
+- TestFlight validation before App Store submission
 
 ---
 
@@ -119,4 +135,4 @@ GOOGLE_API_KEY=
 QWEN_API_KEY=
 ```
 
-Post-Phase 5, only `OPENROUTER_API_KEY` will be required.
+Post-Phase 5, only `OPENROUTER_API_KEY` will be required (persisted in `~/.config/muse/config.toml` via `muse init`).

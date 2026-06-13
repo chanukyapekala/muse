@@ -111,6 +111,10 @@ class SpeechRecognizer: ObservableObject {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.requiresOnDeviceRecognition = true
+        request.taskHint = .dictation
+        if #available(iOS 16.0, *) {
+            request.addsPunctuation = true
+        }
         self.request = request
 
         task = recognizer.recognitionTask(with: request) { [weak self] result, error in
@@ -125,9 +129,10 @@ class SpeechRecognizer: ObservableObject {
                     if result.isFinal {
                         self.committedTranscript += separator + utterance
                         self.transcript = self.committedTranscript
-                        // Restart recognition so further speech is captured.
+                        // Start a fresh request so further speech is captured.
+                        // Don't cancel the current task — it's already wrapping up; cancel
+                        // confuses the recognizer's state machine.
                         if self.status == .recording {
-                            self.task?.cancel()
                             self.startRecognitionRequest(recognizer: recognizer)
                         }
                         return

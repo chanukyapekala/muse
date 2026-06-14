@@ -118,12 +118,19 @@ MuseApp/                               ← iOS app (App Store target)
 - `PrivacyInfo.xcprivacy` manifest, `ITSAppUsesNonExemptEncryption=NO`
 
 **Remaining for App Store v1** (active branch: `ios/appstore-submission`)
-- Drop final app icon into `Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024)
+
+*Must-have* (blocks submission or fails App Review):
+- **SwiftData chat persistence** — toggle currently writes to UserDefaults but no backend exists; Settings claims "saved locally" but nothing is saved. Reviewer will test this and fail it. Need `@Model StoredChatSession`, `ModelContainer` in `MuseApp.swift`, save-on-response, load-in-HistoryView, "Clear history" button.
+- **Copy on long-press** — `.contextMenu` on user bubble + AI response. Fundamental chat UX; absence is jarring.
 - Privacy policy text — host on GitHub Pages, paste URL into App Store Connect
 - App Store listing copy — name, subtitle, keywords, description, what's new
+- Drop final app icon into `Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024)
+
+*Polish before TestFlight*:
 - Onboarding screen — first-launch screen reinforcing "no accounts, no keys, on-device"
 - Haptic feedback on send/receive
-- TestFlight validation, then App Store submission
+
+*Then*: TestFlight validation, App Store submission
 
 **External setup** (user-side; not code)
 - Confirm paid Apple Developer Program membership (free tier can't submit to App Store)

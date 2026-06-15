@@ -29,8 +29,10 @@ class MuseEngine: ObservableObject {
             .receive(on: RunLoop.main)
             .assign(to: \.isModelReady, on: self)
             .store(in: &cancellables)
+    }
 
-        // Preload model on launch so the first prompt doesn't have to wait.
+    func preloadModelIfNeeded() {
+        guard !mlxProvider.isReady else { return }
         Task { [mlxProvider] in
             try? await mlxProvider.loadModel()
         }

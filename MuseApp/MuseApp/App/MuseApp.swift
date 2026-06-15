@@ -1,5 +1,6 @@
 // MuseApp.swift — App entry point
 
+import SwiftData
 import SwiftUI
 
 @main
@@ -53,5 +54,6 @@ struct MuseAppMain: App {
             }
             .environmentObject(engine)
         }
+        .modelContainer(for: StoredChatSession.self)
     }
 }

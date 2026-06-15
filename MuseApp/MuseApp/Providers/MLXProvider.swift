@@ -27,7 +27,7 @@ class MLXProvider: ModelProvider, ObservableObject {
 
         await MainActor.run { status = "Loading model..." }
 
-        MLX.GPU.set(cacheLimit: 512 * 1024 * 1024)
+        MLX.GPU.set(cacheLimit: 128 * 1024 * 1024)
         let config = ModelConfiguration(id: modelID)
 
         let downloader = HubBridge(HubClient()) { [weak self] progress in

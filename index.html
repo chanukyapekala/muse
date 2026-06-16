@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muse — Private On-Device AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .tagline {
+      font-size: 1.15rem;
+      color: #aaa;
+      max-width: 420px;
+      line-height: 1.5;
+      margin-bottom: 40px;
+    }
+
+    .badges {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.07);
+      color: #ccc;
+    }
+
+    .badge.green { background: rgba(52,199,89,0.12); color: #34c759; }
+
+    .appstore-btn {
+      display: inline-block;
+      background: #fff;
+      color: #000;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px 32px;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: opacity 0.15s;
+      margin-bottom: 56px;
+    }
+
+    .appstore-btn:hover { opacity: 0.85; }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      max-width: 640px;
+      width: 100%;
+      margin-bottom: 56px;
+    }
+
+    .feature {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: left;
+    }
+
+    .feature-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .feature h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 4px; }
+    .feature p { font-size: 0.82rem; color: #888; line-height: 1.4; }
+
+    footer {
+      font-size: 0.8rem;
+      color: #555;
+    }
+
+    footer a { color: #666; text-decoration: none; }
+    footer a:hover { color: #999; }
+  </style>
+</head>
+<body>
+
+  <div class="icon">✦</div>
+
+  <h1>Muse</h1>
+  <p class="tagline">Private AI chat that runs entirely on your iPhone. No accounts, no cloud, no compromise.</p>
+
+  <div class="badges">
+    <span class="badge green">✓ On-device only</span>
+    <span class="badge">No accounts</span>
+    <span class="badge">Works offline</span>
+    <span class="badge">Llama 3.2 · 4-bit</span>
+  </div>
+
+  <a class="appstore-btn" href="https://apps.apple.com/app/muse-private-ai/id0000000000">
+    Download on the App Store
+  </a>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🔒</div>
+      <h3>Structurally private</h3>
+      <p>Your prompts never leave the device. There is no server to breach.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">✈️</div>
+      <h3>Fully offline</h3>
+      <p>After the first model download, Muse works anywhere — plane, subway, anywhere.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🎙️</div>
+      <h3>Voice input</h3>
+      <p>Speak your prompts. On-device speech recognition — audio never leaves your phone.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🕐</div>
+      <h3>Chat history</h3>
+      <p>Optionally save conversations locally. Swipe to delete anytime.</p>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/muse/docs/privacy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/chanukyapekala/muse">Source on GitHub</a>
+  </footer>
+
+</body>
+</html>

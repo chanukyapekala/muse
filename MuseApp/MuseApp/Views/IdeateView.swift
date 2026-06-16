@@ -1,9 +1,12 @@
 // IdeateView.swift — Chat-style prompt and response interface
 
+import SwiftData
 import SwiftUI
 
 struct IdeateView: View {
     @EnvironmentObject var engine: MuseEngine
+    @Environment(\.modelContext) private var modelContext
+    @AppStorage("saveChatHistory") private var saveChatHistory = false
     @StateObject private var speech = SpeechRecognizer()
     @State private var prompt = ""
     @State private var promptBeforeRecording = ""
@@ -55,6 +58,9 @@ struct IdeateView: View {
                     withAnimation {
                         proxy.scrollTo("bottom", anchor: .bottom)
                     }
+                    if let response = engine.currentResponse, saveChatHistory {
+                        modelContext.insert(StoredChatSession(prompt: response.prompt, answer: response.answer))
+                    }
                 }
                 .onChange(of: engine.isLoading) {
                     if engine.isLoading {
@@ -67,6 +73,9 @@ struct IdeateView: View {
 
             // Input bar
             inputBar
+        }
+        .onAppear {
+            engine.preloadModelIfNeeded()
         }
     }
 
@@ -137,6 +146,15 @@ struct IdeateView: View {
                 .padding(.vertical, 10)
                 .background(Color.blue.opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 18))
+                .contextMenu {
+                    Button {
+                        #if os(iOS)
+                        UIPasteboard.general.string = text
+                        #endif
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                }
         }
     }
 
@@ -145,6 +163,15 @@ struct IdeateView: View {
     private func responseSection(_ response: MuseResponse) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             markdownView(response.answer)
+        }
+        .contextMenu {
+            Button {
+                #if os(iOS)
+                UIPasteboard.general.string = response.answer
+                #endif
+            } label: {
+                Label("Copy response", systemImage: "doc.on.doc")
+            }
         }
     }
 

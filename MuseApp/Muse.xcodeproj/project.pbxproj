@@ -8,9 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		0AA5C1B6284A316DDAEDB4F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA3442B96D1708A94C043199 /* Assets.xcassets */; };
+		8D4E5F60718293A4B5C6D7E8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */; };
 		1013628729CDCBFEE1B7FCA6 /* MLXProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F618E2C3CA8CDF6B910FD46F /* MLXProvider.swift */; };
 		265EE786C37348FC3DA24846 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 11819990359008755FFBC687 /* MLXLMCommon */; };
 		3E0BBD7333F77C0AA9CB48D6 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8B997F41E0671AD75016DD /* Types.swift */; };
+		AA001122334455667788AA01 /* StoredChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001122334455667788AA02 /* StoredChatSession.swift */; };
 		5A1B2C3D4E5F60718293A4B5 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2C3D4E5F60718293A4B5C6 /* SpeechRecognizer.swift */; };
 		629B21148E2C7DAA561B99AC /* MuseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC2A01A0BB25703E936F8C2 /* MuseApp.swift */; };
 		69F1ACA5D48A03686D141B68 /* IdeateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451CCCE77A2A7C4CD033AFD2 /* IdeateView.swift */; };
@@ -33,8 +35,10 @@
 		6B2C3D4E5F60718293A4B5C6 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		BC19E4BC618EC6F5DCBECB53 /* Muse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Muse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CA3442B96D1708A94C043199 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DF8B997F41E0671AD75016DD /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
+		AA001122334455667788AA02 /* StoredChatSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredChatSession.swift; sourceTree = "<group>"; };
 		F618E2C3CA8CDF6B910FD46F /* MLXProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -58,13 +62,23 @@
 			isa = PBXGroup;
 			children = (
 				CA3442B96D1708A94C043199 /* Assets.xcassets */,
+				9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */,
 				6BD48AFB4A452C5B51EF003A /* App */,
 				E79CF4D86BCAE7AECC70DF08 /* Engine */,
+				AA001122334455667788AA03 /* Models */,
 				E1F5C581DA532B0E7540F60F /* Providers */,
 				7C3D4E5F60718293A4B5C6D7 /* Speech */,
 				B5C01D5215DEE1A8707CB147 /* Views */,
 			);
 			path = MuseApp;
+			sourceTree = "<group>";
+		};
+		AA001122334455667788AA03 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA001122334455667788AA02 /* StoredChatSession.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		7C3D4E5F60718293A4B5C6D7 /* Speech */ = {
@@ -193,6 +207,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0AA5C1B6284A316DDAEDB4F1 /* Assets.xcassets in Resources */,
+				8D4E5F60718293A4B5C6D7E8 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -211,6 +226,7 @@
 				F253CAACCAA61A3070675F9A /* ProviderProtocol.swift in Sources */,
 				736932E7A813DC397C03E152 /* SettingsView.swift in Sources */,
 				5A1B2C3D4E5F60718293A4B5 /* SpeechRecognizer.swift in Sources */,
+				AA001122334455667788AA01 /* StoredChatSession.swift in Sources */,
 				3E0BBD7333F77C0AA9CB48D6 /* Types.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -226,6 +242,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Muse uses the microphone so you can dictate prompts. Audio is transcribed on-device and never leaves your phone.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Muse transcribes your voice on-device for prompts. Audio stays on this device.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -369,6 +386,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Muse uses the microphone so you can dictate prompts. Audio is transcribed on-device and never leaves your phone.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Muse transcribes your voice on-device for prompts. Audio stays on this device.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

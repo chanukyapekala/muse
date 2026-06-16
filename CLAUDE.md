@@ -22,7 +22,7 @@ The CLI keeps the multi-model judge story (that's its differentiator). iOS delib
 The two products have different moats:
 
 - **CLI** — framed as a "code synthesis validation deck." Use an **asymmetric pool** (cheap/local generators + one frontier judge) to keep cost low. Move from LLM-vibes confidence to **deterministic trust signals**: AST equivalence for code, textual similarity for prose. Organic growth via PR-attached confidence blocks; enterprise-friendly because the offline mode passes data-exfiltration review.
-- **iOS** — leans into structural privacy. Bundled MLX model (Llama 3.2 1B 4-bit), no network calls, no accounts, no setup. The niche to own: polished + bundled-model + zero-network + works-on-any-A14+-device. Existing on-device chat apps (LLM Farm, Private LLM, MLC Chat) either require model setup, charge upfront, or feel like research demos.
+- **iOS** — leans into structural privacy. Bundled MLX model (Llama 3.2 1B 4-bit), no network calls, no accounts, no setup. The niche to own *eventually*: **muse + your own second-brain vault, on-device, offline**. Generic on-device chat is a commodity (LLM Farm, Private LLM, MLC Chat, locallyai.app); chat with your *own* knowledge graph offline is structurally uncopyable because the content is the moat. v1 ships as privacy chat; v2 adds RAG over the user's Obsidian-style vault. See [[project_ios_knowledge_sync]] in memory.
 
 ---
 
@@ -35,6 +35,8 @@ The two products have different moats:
 - **CLI** (`muse "prompt"`) + **local FastAPI server** (`muse serve`)
 - **SQLite session storage** at `~/.muse/history.db`
 - **iOS app** (`MuseApp/`) — SwiftUI chat UI, on-device MLX (Llama 3.2 1B Instruct 4-bit). No cloud providers, no API keys, no Keychain — fully on-device.
+- **On-device voice input** (iOS) — `SFSpeechRecognizer` with `requiresOnDeviceRecognition=true` and `taskHint=.dictation`. Audio never leaves the device. Tolerates pauses by restarting recognition requests across `isFinal` while accumulating committed transcript.
+- **Model preload on launch** (iOS) — `MuseEngine.init()` kicks off `loadModel()` so the ~700 MB download starts when the app opens, not when the user sends their first prompt. Send button + text field are disabled until model is ready.
 
 ### Partial
 
@@ -108,14 +110,47 @@ MuseApp/                               ← iOS app (App Store target)
 
 **Goal:** App Store v1 — single bundled on-device model, "install and chat."
 
-- Llama 3.2 1B 4-bit baked in via MLX (already wired)
-- Chat history opt-in toggle (Settings); SwiftData persistence backend as follow-up
-- `PrivacyInfo.xcprivacy` manifest + `Info.plist` for `ITSAppUsesNonExemptEncryption=NO`
-- Onboarding screen explaining the on-device default
-- App icon polish + haptic feedback on send/receive
-- TestFlight validation before App Store submission
+**Done**
+- Llama 3.2 1B 4-bit via MLX, fully on-device
+- Voice input via `SFSpeechRecognizer` (on-device, dictation hint, pause-tolerant)
+- Model preload on launch + ready-gated send button
+- Chat history opt-in toggle (UserDefaults; in-memory only for now)
+- `PrivacyInfo.xcprivacy` manifest, `ITSAppUsesNonExemptEncryption=NO`
 
-**Out of scope for v1** (consider for later releases): multiple on-device models with judge, persona presets, SwiftData chat history backing the toggle.
+**Remaining for App Store v1** (active branch: `ios/appstore-submission`)
+
+*Must-have* (blocks submission or fails App Review):
+- **SwiftData chat persistence** — toggle currently writes to UserDefaults but no backend exists; Settings claims "saved locally" but nothing is saved. Reviewer will test this and fail it. Need `@Model StoredChatSession`, `ModelContainer` in `MuseApp.swift`, save-on-response, load-in-HistoryView, "Clear history" button.
+- **Copy on long-press** — `.contextMenu` on user bubble + AI response. Fundamental chat UX; absence is jarring.
+- Privacy policy text — host on GitHub Pages, paste URL into App Store Connect
+- App Store listing copy — name, subtitle, keywords, description, what's new
+- Drop final app icon into `Assets.xcassets/AppIcon.appiconset/AppIcon.png` (1024×1024)
+
+*Polish before TestFlight*:
+- Onboarding screen — first-launch screen reinforcing "no accounts, no keys, on-device"
+- Haptic feedback on send/receive
+
+*Then*: TestFlight validation, App Store submission
+
+**External setup** (user-side; not code)
+- Confirm paid Apple Developer Program membership (free tier can't submit to App Store)
+- Create App Store Connect app record (bundle ID `com.chanukya.muse`, Team `7HWUR5MR38`)
+- Take screenshots at iPhone 6.7" minimum
+
+**Out of scope for v1**: multiple on-device models with judge, persona presets, image input via VLM swap.
+
+### iOS post-v1 roadmap
+
+**Aggressive target: v2.0 shipped within ~2 weeks.** User plans to start vacation during this window, so most external + code work needs to be lined up before leaving.
+
+| Release | Scope | Realistic target |
+|---|---|---|
+| **v1.0** | Privacy chat app — current `ios/appstore-submission` branch + must-haves | ~Week 1 (TestFlight + App Review) |
+| **v2.0** | On-device RAG over the user's second-brain Obsidian vault — embedding model, vector store, retrieve-then-generate. Skip v1.5 as a separate release; fold vault import into v2. | ~Week 2 |
+
+v1.5 was scoped as a bridge release; with the 2-week target it makes more sense to ship v1.0 (privacy chat) and v2.0 (vault RAG) and skip the bridge.
+
+See [[project_ios_knowledge_sync]] in memory for v2 implementation notes (embedding model candidates, vector store choices, vault-sync mechanism trade-offs).
 
 ---
 

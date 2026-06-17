@@ -29,6 +29,11 @@ struct MuseAppMain: App {
                         Label("Ideate", systemImage: "sparkles")
                     }
 
+                MemoriesView()
+                    .tabItem {
+                        Label("Memory", systemImage: "brain")
+                    }
+
                 HistoryView()
                     .tabItem {
                         Label("History", systemImage: "clock")

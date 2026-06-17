@@ -54,6 +54,6 @@ struct MuseAppMain: App {
             }
             .environmentObject(engine)
         }
-        .modelContainer(for: StoredChatSession.self)
+        .modelContainer(for: [StoredChatSession.self, Memory.self, MemoryCluster.self])
     }
 }

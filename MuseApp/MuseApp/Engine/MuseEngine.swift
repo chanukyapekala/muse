@@ -2,6 +2,7 @@
 
 import Combine
 import Foundation
+import SwiftData
 
 @MainActor
 class MuseEngine: ObservableObject {
@@ -13,6 +14,7 @@ class MuseEngine: ObservableObject {
     @Published var isModelReady: Bool = false
 
     let mlxProvider = MLXProvider()
+    let memoryEngine = MemoryEngine()
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -38,26 +40,60 @@ class MuseEngine: ObservableObject {
         }
     }
 
-    func ideate(prompt: String) async {
+    func ideate(prompt: String, modelContext: ModelContext) async {
         isLoading = true
         loadingStatus = "Thinking..."
         lastPrompt = prompt
         error = nil
         currentResponse = nil
 
-        let system = "You are a helpful AI assistant. Provide a thorough, well-structured response."
+        let system = buildSystemPrompt(modelContext: modelContext)
 
         do {
             let result = try await mlxProvider.generate(prompt: prompt, system: system, maxTokens: 2048)
             if let err = result.error {
                 error = err
             } else {
-                currentResponse = MuseResponse(prompt: prompt, answer: result.content)
+                let response = MuseResponse(prompt: prompt, answer: result.content)
+                currentResponse = response
+
+                // Extract memories in background — don't block the UI
+                Task {
+                    await memoryEngine.process(
+                        prompt: prompt,
+                        answer: result.content,
+                        modelContext: modelContext
+                    ) { [weak self] (extractionPrompt: String) in
+                        guard let self else { return "" }
+                        let r = try await self.mlxProvider.generate(
+                            prompt: extractionPrompt,
+                            system: "You are a helpful assistant. Follow instructions exactly.",
+                            maxTokens: 256
+                        )
+                        return r.content
+                    }
+                }
             }
         } catch {
             self.error = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    private func buildSystemPrompt(modelContext: ModelContext) -> String {
+        var base = "You are a helpful AI assistant. Provide a thorough, well-structured response."
+
+        let descriptor = FetchDescriptor<Memory>(
+            predicate: #Predicate<Memory> { $0.active == true },
+            sortBy: [SortDescriptor(\Memory.createdAt)]
+        )
+        let memories = (try? modelContext.fetch(descriptor)) ?? []
+
+        guard !memories.isEmpty else { return base }
+
+        let facts = memories.map { "- \($0.fact)" }.joined(separator: "\n")
+        base += "\n\nWhat you know about this user:\n\(facts)\n\nUse this context naturally without mentioning that you have a memory system."
+        return base
     }
 }

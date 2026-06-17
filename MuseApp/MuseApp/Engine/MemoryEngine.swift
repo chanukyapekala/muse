@@ -35,16 +35,17 @@ class MemoryEngine {
 
     // Parse "- fact" lines, ignore noise
     private func parseLines(_ text: String) -> [String] {
-        text.components(separatedBy: "\n")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { $0.hasPrefix("-") }
-            .map { line in
-                line.drop(while: { $0 == "-" || $0 == " " })
-                    .trimmingCharacters(in: .whitespaces)
-            }
-            .filter { !$0.isEmpty && $0.lowercased() != "none" && $0.count > 5 }
-            .prefix(3)
-            .map { String($0) }
+        var results: [String] = []
+        for line in text.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("-") else { continue }
+            let fact = trimmed.drop(while: { $0 == "-" || $0 == " " })
+                .trimmingCharacters(in: .whitespaces)
+            guard !fact.isEmpty, fact.lowercased() != "none", fact.count > 5 else { continue }
+            results.append(fact)
+            if results.count == 3 { break }
+        }
+        return results
     }
 
     private func resolveCluster(for fact: String, existing: [MemoryCluster], modelContext: ModelContext) -> UUID {

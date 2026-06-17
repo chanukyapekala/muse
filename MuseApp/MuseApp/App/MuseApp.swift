@@ -6,6 +6,18 @@ import SwiftUI
 @main
 struct MuseAppMain: App {
     @StateObject private var engine = MuseEngine()
+    let container: ModelContainer = {
+        let schema = Schema([StoredChatSession.self, Memory.self, MemoryCluster.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: config)
+        } catch {
+            // Schema changed — wipe and recreate so the app doesn't get stuck
+            let url = config.url
+            try? FileManager.default.removeItem(at: url)
+            return try! ModelContainer(for: schema, configurations: config)
+        }
+    }()
 
     init() {
         // Force window background to black so no dead space shows
@@ -59,6 +71,6 @@ struct MuseAppMain: App {
             }
             .environmentObject(engine)
         }
-        .modelContainer(for: [StoredChatSession.self, Memory.self, MemoryCluster.self])
+        .modelContainer(container)
     }
 }

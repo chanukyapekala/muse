@@ -8,14 +8,20 @@ struct MuseAppMain: App {
     @StateObject private var engine = MuseEngine()
     let container: ModelContainer = {
         let schema = Schema([StoredChatSession.self, Memory.self, MemoryCluster.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: config)
+            return try ModelContainer(for: schema)
         } catch {
-            // Schema changed — wipe and recreate so the app doesn't get stuck
-            let url = config.url
-            try? FileManager.default.removeItem(at: url)
-            return try! ModelContainer(for: schema, configurations: config)
+            // Schema mismatch — delete all SQLite files and start fresh
+            if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+                let suffixes = ["", "-wal", "-shm"]
+                for suffix in suffixes {
+                    let file = appSupport.appendingPathComponent("default.store\(suffix)")
+                    try? FileManager.default.removeItem(at: file)
+                }
+            }
+            // Try once more; fall back to in-memory if it still fails
+            return (try? ModelContainer(for: schema))
+                ?? (try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         }
     }()
 

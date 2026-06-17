@@ -6,24 +6,29 @@ import SwiftUI
 @main
 struct MuseAppMain: App {
     @StateObject private var engine = MuseEngine()
-    let container: ModelContainer = {
+    let container: ModelContainer = Self.makeContainer()
+
+    private static func makeContainer() -> ModelContainer {
         let schema = Schema([StoredChatSession.self, Memory.self, MemoryCluster.self])
-        do {
-            return try ModelContainer(for: schema)
-        } catch {
-            // Schema mismatch — delete all SQLite files and start fresh
-            if let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
-                let suffixes = ["", "-wal", "-shm"]
-                for suffix in suffixes {
-                    let file = appSupport.appendingPathComponent("default.store\(suffix)")
-                    try? FileManager.default.removeItem(at: file)
-                }
+
+        // 1. Try normal persistent store
+        if let c = try? ModelContainer(for: schema) { return c }
+
+        // 2. Schema mismatch — wipe all SQLite files and retry
+        if let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            for suffix in ["", "-wal", "-shm"] {
+                try? FileManager.default.removeItem(at: dir.appendingPathComponent("default.store\(suffix)"))
             }
-            // Try once more; fall back to in-memory if it still fails
-            return (try? ModelContainer(for: schema))
-                ?? (try! ModelContainer(for: schema, configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
         }
-    }()
+        if let c = try? ModelContainer(for: schema) { return c }
+
+        // 3. Last resort: in-memory only (data won't persist but app won't crash)
+        let inMemory = ModelConfiguration(isStoredInMemoryOnly: true)
+        if let c = try? ModelContainer(for: schema, configurations: inMemory) { return c }
+
+        // 4. Should never reach here — empty schema as absolute fallback
+        return try! ModelContainer(for: Schema([]))
+    }
 
     init() {
         // Force window background to black so no dead space shows

@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MemoriesView: View {
     @Query(sort: \Memory.createdAt, order: .reverse) private var memories: [Memory]
@@ -9,8 +10,8 @@ struct MemoriesView: View {
     @State private var showResetConfirm = false
     @State private var editingMemory: Memory?
     @State private var editText = ""
-    @State private var exportDocument: MemoryExportDocument?
     @State private var showExporter = false
+    @State private var exportDocument: MemoryExportDocument?
 
     var body: some View {
         NavigationStack {
@@ -18,16 +19,15 @@ struct MemoriesView: View {
                 if memories.isEmpty {
                     emptyState
                 } else {
-                    List {
-                        ForEach(clusterGroups, id: \.id) { group in
-                            Section(group.label) {
-                                ForEach(group.memories) { memory in
-                                    memoryRow(memory)
-                                }
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(clusterGroups, id: \.id) { group in
+                                clusterCard(group)
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    .listStyle(.insetGrouped)
                 }
             }
             .navigationTitle("Memory")
@@ -39,7 +39,7 @@ struct MemoriesView: View {
                 Button("Reset", role: .destructive, action: resetAll)
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Muse will forget everything it knows about you. This cannot be undone.")
+                Text("Muse will forget everything it knows about you.")
             }
             .sheet(item: $editingMemory) { memory in
                 editSheet(memory)
@@ -56,31 +56,81 @@ struct MemoriesView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        ContentUnavailableView(
-            "No memories yet",
-            systemImage: "brain",
-            description: Text("Muse will learn about you as you chat and use that context in future conversations.")
-        )
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "brain")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary.opacity(0.4))
+            Text("No memories yet")
+                .font(.title3.weight(.semibold))
+            Text("Muse learns about you as you chat and uses that context in future conversations.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            Spacer()
+        }
+    }
+
+    // MARK: - Cluster card
+
+    private func clusterCard(_ group: ClusterGroup) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                Text(group.label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+                Spacer()
+                Text("\(group.memories.count)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            Divider()
+                .padding(.horizontal, 14)
+
+            // Memory rows
+            ForEach(group.memories) { memory in
+                memoryRow(memory)
+                if memory.id != group.memories.last?.id {
+                    Divider()
+                        .padding(.leading, 54)
+                }
+            }
+        }
+        .background(Color(white: 0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Memory row
 
     private func memoryRow(_ memory: Memory) -> some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             Toggle("", isOn: Binding(
                 get: { memory.active },
                 set: { memory.active = $0 }
             ))
             .labelsHidden()
             .tint(.blue)
+            .padding(.top, 1)
 
             Text(memory.fact)
                 .font(.subheadline)
                 .foregroundStyle(memory.active ? .primary : .tertiary)
                 .strikethrough(!memory.active, color: .secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 modelContext.delete(memory)
@@ -113,7 +163,7 @@ struct MemoriesView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Reset", role: .destructive) {
+                Button("Reset") {
                     showResetConfirm = true
                 }
                 .foregroundStyle(.red)
@@ -183,8 +233,7 @@ struct MemoriesView: View {
                 active: m.active
             )
         }
-        let export = MemoryExport(exportedAt: Date(), memories: records)
-        exportDocument = MemoryExportDocument(export: export)
+        exportDocument = MemoryExportDocument(export: MemoryExport(exportedAt: Date(), memories: records))
     }
 
     // MARK: - Reset
@@ -195,17 +244,13 @@ struct MemoriesView: View {
     }
 }
 
-// MARK: - FileDocument for export
-
-import UniformTypeIdentifiers
+// MARK: - FileDocument
 
 struct MemoryExportDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
     let export: MemoryExport
 
-    init(export: MemoryExport) {
-        self.export = export
-    }
+    init(export: MemoryExport) { self.export = export }
 
     init(configuration: ReadConfiguration) throws {
         export = MemoryExport(exportedAt: Date(), memories: [])

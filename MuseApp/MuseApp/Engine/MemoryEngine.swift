@@ -8,13 +8,13 @@ class MemoryEngine {
     private let clusterThreshold: Double = 0.35
 
     func process(prompt: String, answer: String, modelContext: ModelContext, generate: (String) async throws -> String) async {
-        // Keep prompt short — 1B models struggle with long context + structured output
-        let truncatedPrompt = String(prompt.prefix(300))
+        // Only extract from the user's message — not the assistant's response
+        let truncatedPrompt = String(prompt.prefix(200))
 
         let extractionPrompt = """
-        List up to 3 personal facts about the user from this message. Each fact on its own line. Start each line with "- ". If no personal facts, write "none".
+        Read this message and list personal facts about the person who wrote it. Only include facts clearly stated by the user. Each fact on its own line starting with "- ". Maximum 3 facts. If none, write "none".
 
-        User message: \(truncatedPrompt)
+        Message: \(truncatedPrompt)
 
         Facts:
         """
@@ -76,7 +76,20 @@ class MemoryEngine {
     }
 
     private func shortLabel(_ fact: String) -> String {
-        fact.split(separator: " ").prefix(4).joined(separator: " ")
+        // Use NLTagger to extract the most relevant noun/keyword
+        let tagger = NLTagger(tagSchemes: [.lexicalClass])
+        tagger.string = fact
+        var keywords: [String] = []
+        tagger.enumerateTags(in: fact.startIndex..<fact.endIndex, unit: .word, scheme: .lexicalClass) { tag, range in
+            if let tag, (tag == .noun || tag == .verb), range.upperBound > range.lowerBound {
+                let word = String(fact[range]).lowercased()
+                if word.count > 3 { keywords.append(word) }
+            }
+            return keywords.count < 2
+        }
+        return keywords.isEmpty
+            ? String(fact.split(separator: " ").prefix(2).joined(separator: " "))
+            : keywords.joined(separator: " ")
     }
 
     private func cosineSimilarity(_ a: [Double], _ b: [Double]) -> Double {

@@ -300,7 +300,7 @@ struct IdeateView: View {
                     guard !text.isEmpty else { return }
                     prompt = ""
                     isPromptFocused = false
-                    Task { await engine.ideate(prompt: text) }
+                    Task { await engine.ideate(prompt: text, modelContext: modelContext) }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))

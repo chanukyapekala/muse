@@ -2,6 +2,7 @@
 
 import Combine
 import Foundation
+import SwiftData
 
 @MainActor
 class MuseEngine: ObservableObject {
@@ -13,6 +14,7 @@ class MuseEngine: ObservableObject {
     @Published var isModelReady: Bool = false
 
     let mlxProvider = MLXProvider()
+    let memoryEngine = MemoryEngine()
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -38,14 +40,14 @@ class MuseEngine: ObservableObject {
         }
     }
 
-    func ideate(prompt: String) async {
+    func ideate(prompt: String, modelContext: ModelContext) async {
         isLoading = true
         loadingStatus = "Thinking..."
         lastPrompt = prompt
         error = nil
         currentResponse = nil
 
-        let system = "You are a helpful AI assistant. Provide a thorough, well-structured response."
+        let system = buildSystemPrompt(modelContext: modelContext)
 
         do {
             let result = try await mlxProvider.generate(prompt: prompt, system: system, maxTokens: 2048)
@@ -53,11 +55,28 @@ class MuseEngine: ObservableObject {
                 error = err
             } else {
                 currentResponse = MuseResponse(prompt: prompt, answer: result.content)
+
+                // Extract memories using NLTagger only — no second model call
+                memoryEngine.process(prompt: prompt, modelContext: modelContext)
             }
         } catch {
             self.error = error.localizedDescription
         }
 
         isLoading = false
+    }
+
+    private func buildSystemPrompt(modelContext: ModelContext) -> String {
+        var base = "You are a helpful AI assistant. Provide a thorough, well-structured response."
+
+        let descriptor = FetchDescriptor<MemoryCluster>(
+            sortBy: [SortDescriptor(\MemoryCluster.lastSeen, order: .reverse)]
+        )
+        let clusters = (try? modelContext.fetch(descriptor)) ?? []
+        guard !clusters.isEmpty else { return base }
+
+        let topics = clusters.prefix(12).map(\.label).joined(separator: ", ")
+        base += "\n\nThis user has recently discussed: \(topics). Use this context naturally."
+        return base
     }
 }

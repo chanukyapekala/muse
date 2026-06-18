@@ -69,16 +69,14 @@ class MuseEngine: ObservableObject {
     private func buildSystemPrompt(modelContext: ModelContext) -> String {
         var base = "You are a helpful AI assistant. Provide a thorough, well-structured response."
 
-        let descriptor = FetchDescriptor<Memory>(
-            predicate: #Predicate<Memory> { $0.active == true },
-            sortBy: [SortDescriptor(\Memory.createdAt)]
+        let descriptor = FetchDescriptor<MemoryCluster>(
+            sortBy: [SortDescriptor(\MemoryCluster.lastSeen, order: .reverse)]
         )
-        let memories = (try? modelContext.fetch(descriptor)) ?? []
+        let clusters = (try? modelContext.fetch(descriptor)) ?? []
+        guard !clusters.isEmpty else { return base }
 
-        guard !memories.isEmpty else { return base }
-
-        let facts = memories.map { "- \($0.fact)" }.joined(separator: "\n")
-        base += "\n\nWhat you know about this user:\n\(facts)\n\nUse this context naturally without mentioning that you have a memory system."
+        let topics = clusters.prefix(12).map(\.label).joined(separator: ", ")
+        base += "\n\nThis user has recently discussed: \(topics). Use this context naturally."
         return base
     }
 }

@@ -54,25 +54,10 @@ class MuseEngine: ObservableObject {
             if let err = result.error {
                 error = err
             } else {
-                let response = MuseResponse(prompt: prompt, answer: result.content)
-                currentResponse = response
+                currentResponse = MuseResponse(prompt: prompt, answer: result.content)
 
-                // Extract memories in background — don't block the UI
-                Task {
-                    await memoryEngine.process(
-                        prompt: prompt,
-                        answer: result.content,
-                        modelContext: modelContext
-                    ) { [weak self] (extractionPrompt: String) in
-                        guard let self else { return "" }
-                        let r = try await self.mlxProvider.generate(
-                            prompt: extractionPrompt,
-                            system: "You are a helpful assistant. Follow instructions exactly.",
-                            maxTokens: 256
-                        )
-                        return r.content
-                    }
-                }
+                // Extract memories using NLTagger only — no second model call
+                memoryEngine.process(prompt: prompt, modelContext: modelContext)
             }
         } catch {
             self.error = error.localizedDescription

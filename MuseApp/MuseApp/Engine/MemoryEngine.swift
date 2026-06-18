@@ -4,69 +4,87 @@ import SwiftData
 
 @MainActor
 class MemoryEngine {
-    private let embedding = NLEmbedding.sentenceEmbedding(for: .english)
+    private let sentenceEmbedding = NLEmbedding.sentenceEmbedding(for: .english)
     private let clusterThreshold: Double = 0.35
 
-    func process(prompt: String, answer: String, modelContext: ModelContext, generate: (String) async throws -> String) async {
-        // Only extract from the user's message — not the assistant's response
-        let truncatedPrompt = String(prompt.prefix(200))
-
-        let extractionPrompt = """
-        Read this message and list personal facts about the person who wrote it. Only include facts clearly stated by the user. Each fact on its own line starting with "- ". Maximum 3 facts. If none, write "none".
-
-        Message: \(truncatedPrompt)
-
-        Facts:
-        """
-
-        guard let raw = try? await generate(extractionPrompt) else { return }
-
-        let facts = parseLines(raw)
+    // Extract facts using NLTagger only — no second Llama call, no memory spike.
+    func process(prompt: String, modelContext: ModelContext) {
+        let facts = extractFacts(from: prompt)
         guard !facts.isEmpty else { return }
 
         let existingClusters = (try? modelContext.fetch(FetchDescriptor<MemoryCluster>())) ?? []
-
         for fact in facts {
             let clusterID = resolveCluster(for: fact, existing: existingClusters, modelContext: modelContext)
-            let memory = Memory(fact: fact, clusterID: clusterID)
-            modelContext.insert(memory)
+            modelContext.insert(Memory(fact: fact, clusterID: clusterID))
         }
     }
 
-    // Parse "- fact" lines, ignore noise
-    private func parseLines(_ text: String) -> [String] {
-        var results: [String] = []
-        for line in text.components(separatedBy: "\n") {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("-") else { continue }
-            let fact = trimmed.drop(while: { $0 == "-" || $0 == " " })
-                .trimmingCharacters(in: .whitespaces)
-            guard !fact.isEmpty, fact.lowercased() != "none", fact.count > 5 else { continue }
-            results.append(fact)
-            if results.count == 3 { break }
+    // Extract meaningful noun phrases from the user's message using NLTagger.
+    private func extractFacts(from text: String) -> [String] {
+        let tagger = NLTagger(tagSchemes: [.nameType, .lexicalClass])
+        tagger.string = text
+
+        var nouns: [String] = []
+        var facts: [String] = []
+
+        // Pass 1: named entities (person, place, org)
+        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .nameType, options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            if tag != nil {
+                nouns.append(String(text[range]))
+            }
+            return true
         }
-        return results
+
+        // Pass 2: significant nouns that aren't stop words
+        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .lexicalClass, options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            if tag == .noun {
+                let word = String(text[range]).lowercased()
+                if word.count > 3 && !stopWords.contains(word) {
+                    nouns.append(word)
+                }
+            }
+            return true
+        }
+
+        guard !nouns.isEmpty else { return [] }
+
+        // Build a concise fact from the full sentence if it's personal
+        let sentences = text.components(separatedBy: CharacterSet(charactersIn: ".!?"))
+        for sentence in sentences {
+            let s = sentence.trimmingCharacters(in: .whitespaces)
+            guard s.count > 10 else { continue }
+            let lower = s.lowercased()
+            // Only extract first-person statements
+            if lower.hasPrefix("i ") || lower.hasPrefix("i'm") || lower.hasPrefix("i am") || lower.hasPrefix("my ") {
+                let fact = s.prefix(120).description
+                facts.append(fact)
+                if facts.count == 3 { break }
+            }
+        }
+
+        return facts
     }
+
+    private let stopWords: Set<String> = [
+        "this", "that", "with", "from", "they", "them", "their", "have",
+        "will", "would", "could", "should", "been", "being", "were", "what",
+        "when", "where", "which", "there", "here", "just", "like", "also",
+        "some", "more", "than", "then", "into", "your", "about"
+    ]
 
     private func resolveCluster(for fact: String, existing: [MemoryCluster], modelContext: ModelContext) -> UUID {
-        guard let embedding else {
-            return makeCluster(label: shortLabel(fact), embeddingVector: [], modelContext: modelContext)
+        guard let sentenceEmbedding else {
+            return makeCluster(label: topicLabel(fact), embeddingVector: [], modelContext: modelContext)
         }
-
-        let factVector = embedding.vector(for: fact) ?? []
-        var bestCluster: MemoryCluster?
-        var bestDistance = Double.infinity
-
+        let vector = sentenceEmbedding.vector(for: fact) ?? []
+        var best: MemoryCluster?
+        var bestDist = Double.infinity
         for cluster in existing {
-            let d = cosineSimilarity(factVector, cluster.embedding)
-            if d < bestDistance { bestDistance = d; bestCluster = cluster }
+            let d = cosineSimilarity(vector, cluster.embedding)
+            if d < bestDist { bestDist = d; best = cluster }
         }
-
-        if let match = bestCluster, bestDistance < clusterThreshold {
-            return match.id
-        }
-
-        return makeCluster(label: shortLabel(fact), embeddingVector: factVector, modelContext: modelContext)
+        if let match = best, bestDist < clusterThreshold { return match.id }
+        return makeCluster(label: topicLabel(fact), embeddingVector: vector, modelContext: modelContext)
     }
 
     private func makeCluster(label: String, embeddingVector: [Double], modelContext: ModelContext) -> UUID {
@@ -75,21 +93,18 @@ class MemoryEngine {
         return cluster.id
     }
 
-    private func shortLabel(_ fact: String) -> String {
-        // Use NLTagger to extract the most relevant noun/keyword
+    private func topicLabel(_ fact: String) -> String {
         let tagger = NLTagger(tagSchemes: [.lexicalClass])
         tagger.string = fact
         var keywords: [String] = []
-        tagger.enumerateTags(in: fact.startIndex..<fact.endIndex, unit: .word, scheme: .lexicalClass) { tag, range in
-            if let tag, (tag == .noun || tag == .verb), range.upperBound > range.lowerBound {
-                let word = String(fact[range]).lowercased()
-                if word.count > 3 { keywords.append(word) }
+        tagger.enumerateTags(in: fact.startIndex..<fact.endIndex, unit: .word, scheme: .lexicalClass, options: [.omitWhitespace, .omitPunctuation]) { tag, range in
+            if tag == .noun || tag == .verb {
+                let w = String(fact[range]).lowercased()
+                if w.count > 3 && !stopWords.contains(w) { keywords.append(w) }
             }
             return keywords.count < 2
         }
-        return keywords.isEmpty
-            ? String(fact.split(separator: " ").prefix(2).joined(separator: " "))
-            : keywords.joined(separator: " ")
+        return keywords.isEmpty ? String(fact.prefix(20)) : keywords.joined(separator: " ")
     }
 
     private func cosineSimilarity(_ a: [Double], _ b: [Double]) -> Double {

@@ -6,40 +6,53 @@ import SwiftUI
 struct IdeateView: View {
     @EnvironmentObject var engine: MuseEngine
     @Environment(\.modelContext) private var modelContext
-    @AppStorage("saveChatHistory") private var saveChatHistory = false
+    @AppStorage("userName") private var userName: String = ""
+    @Query(sort: \StoredChatSession.createdAt, order: .forward) private var allSessions: [StoredChatSession]
     @StateObject private var speech = SpeechRecognizer()
     @State private var prompt = ""
     @State private var promptBeforeRecording = ""
+    @State private var showClearConfirm = false
+    @State private var showThreads = false
     @FocusState private var isPromptFocused: Bool
 
+    private var sessions: [StoredChatSession] {
+        guard let currentID = engine.currentThreadID else { return [] }
+        return allSessions.filter { $0.threadID == currentID }
+    }
+
+    private let quickPrompts: [(label: String, icon: String, template: String, color: Color)] = [
+        ("WhatsApp", "message.fill", "Draft a WhatsApp message about ", .green),
+        ("Instagram", "camera.fill", "Write an Instagram caption about ", .pink),
+        ("Twitter", "at", "Write a tweet about ", .blue),
+    ]
+
     var body: some View {
+        NavigationStack {
+            chatStack
+        }
+    }
+
+    private var chatStack: some View {
         VStack(spacing: 0) {
-            // Chat area
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 20) {
-                        if engine.currentResponse == nil && !engine.isLoading && engine.error == nil {
+                        if sessions.isEmpty && !engine.isLoading && engine.error == nil {
                             emptyState
                         }
 
-                        if let response = engine.currentResponse {
-                            // User message bubble
-                            userBubble(response.prompt)
+                        ForEach(sessions) { session in
+                            userBubble(session.prompt)
+                            responseSection(session)
+                        }
 
-                            // Model response
-                            responseSection(response)
+                        if engine.isLoading {
+                            userBubble(engine.lastPrompt)
+                            loadingView
                         }
 
                         if let error = engine.error {
                             errorCard(error)
-                        }
-
-                        if engine.isLoading {
-                            if engine.currentResponse == nil {
-                                // Show the prompt that was just sent
-                                userBubble(engine.lastPrompt)
-                            }
-                            loadingView
                         }
 
                         Color.clear
@@ -51,54 +64,90 @@ struct IdeateView: View {
                     .padding(.bottom, 8)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
-                    isPromptFocused = false
-                }
-                .onChange(of: engine.currentResponse?.id) {
-                    withAnimation {
-                        proxy.scrollTo("bottom", anchor: .bottom)
-                    }
-                    if let response = engine.currentResponse, saveChatHistory {
-                        modelContext.insert(StoredChatSession(prompt: response.prompt, answer: response.answer))
-                    }
+                .onTapGesture { isPromptFocused = false }
+                .onChange(of: sessions.count) {
+                    withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
                 }
                 .onChange(of: engine.isLoading) {
                     if engine.isLoading {
-                        withAnimation {
-                            proxy.scrollTo("bottom", anchor: .bottom)
-                        }
+                        withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
                     }
                 }
             }
 
-            // Input bar
             inputBar
         }
-        .onAppear {
-            engine.preloadModelIfNeeded()
+        .navigationTitle("Muse")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showThreads = true
+                } label: {
+                    Image(systemName: "sidebar.left")
+                }
+            }
+            if !sessions.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showClearConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
         }
+        #endif
+        .sheet(isPresented: $showThreads) {
+            ChatThreadsView()
+                .environmentObject(engine)
+        }
+        .confirmationDialog("Clear conversation?", isPresented: $showClearConfirm, titleVisibility: .visible) {
+            Button("Clear", role: .destructive) { clearConversation() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("All messages on this device will be deleted. Aura topics remain.")
+        }
+        .onAppear { engine.preloadModelIfNeeded() }
+        .onChange(of: engine.pendingPrompt) { _, new in
+            if let new {
+                prompt = new
+                isPromptFocused = true
+                engine.pendingPrompt = nil
+            }
+        }
+    }
+
+    private func clearConversation() {
+        for s in sessions { modelContext.delete(s) }
+        if let id = engine.currentThreadID,
+           let thread = try? modelContext.fetch(FetchDescriptor<ChatThread>(predicate: #Predicate { $0.id == id })).first {
+            modelContext.delete(thread)
+        }
+        engine.currentThreadID = nil
     }
 
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer().frame(height: 80)
+        VStack(spacing: 18) {
+            Spacer().frame(height: 60)
 
             Image(systemName: "sparkles")
-                .font(.system(size: 44))
+                .font(.system(size: 40))
                 .foregroundStyle(.secondary.opacity(0.6))
 
-            Text("Muse")
-                .font(.title.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            Text("Ask anything. On-device AI, private by default.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            VStack(spacing: 4) {
+                Text(greeting)
+                    .font(.title2.weight(.semibold))
+                Text("What's up?")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
 
             if engine.isModelReady {
+                quickPromptRow
                 Label("On-device only", systemImage: "lock.shield")
                     .font(.caption)
                     .foregroundStyle(.green)
@@ -111,6 +160,32 @@ struct IdeateView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var greeting: String {
+        let name = userName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "Hey there," : "Hey \(name),"
+    }
+
+    private var quickPromptRow: some View {
+        HStack(spacing: 10) {
+            ForEach(quickPrompts, id: \.label) { q in
+                Button {
+                    prompt = q.template
+                    isPromptFocused = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: q.icon).font(.caption)
+                        Text(q.label).font(.caption.weight(.medium))
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Capsule().fill(q.color.opacity(0.18)))
+                    .overlay(Capsule().stroke(q.color.opacity(0.4), lineWidth: 1))
+                    .foregroundStyle(.white)
+                }
+            }
+        }
     }
 
     private var setupBanner: some View {
@@ -160,19 +235,50 @@ struct IdeateView: View {
 
     // MARK: - Response
 
-    private func responseSection(_ response: MuseResponse) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            markdownView(response.answer)
+    private func responseSection(_ session: StoredChatSession) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            markdownView(session.answer)
+            actionRow(prompt: session.prompt, answer: session.answer)
         }
         .contextMenu {
             Button {
                 #if os(iOS)
-                UIPasteboard.general.string = response.answer
+                UIPasteboard.general.string = session.answer
                 #endif
             } label: {
                 Label("Copy response", systemImage: "doc.on.doc")
             }
         }
+    }
+
+    private func actionRow(prompt: String, answer: String) -> some View {
+        HStack(spacing: 18) {
+            Button {
+                #if os(iOS)
+                UIPasteboard.general.string = answer
+                #endif
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            ShareLink(item: answer) {
+                Image(systemName: "square.and.arrow.up")
+            }
+            Button {
+                Task { await engine.ideate(prompt: prompt, modelContext: modelContext) }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            Button {
+                Task { await engine.ideate(prompt: prompt, modelContext: modelContext, deepContext: true) }
+            } label: {
+                Image(systemName: "text.magnifyingglass")
+            }
+            .help("Explain with more context")
+            Spacer()
+        }
+        .font(.system(size: 14))
+        .foregroundStyle(.secondary)
+        .padding(.top, 4)
     }
 
     // MARK: - Markdown renderer
@@ -184,7 +290,6 @@ struct IdeateView: View {
             if block.isCode {
                 codeBlock(block.content, language: block.language)
             } else {
-                // Use iOS built-in markdown rendering
                 if let attributed = try? AttributedString(markdown: block.content, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
                     Text(attributed)
                         .font(.body)

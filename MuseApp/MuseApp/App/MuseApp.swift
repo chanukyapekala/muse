@@ -9,7 +9,7 @@ struct MuseAppMain: App {
     let container: ModelContainer = Self.makeContainer()
 
     private static func makeContainer() -> ModelContainer {
-        let schema = Schema([StoredChatSession.self, MemoryCluster.self])
+        let schema = Schema([StoredChatSession.self, MemoryCluster.self, ClusterEdge.self, ChatThread.self])
 
         // 1. Try normal persistent store
         if let c = try? ModelContainer(for: schema) { return c }
@@ -46,26 +46,30 @@ struct MuseAppMain: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView {
+            TabView(selection: $engine.selectedTab) {
                 IdeateView()
                     .tabItem {
                         Label("Ideate", systemImage: "sparkles")
                     }
+                    .tag(0)
 
                 AuraView()
                     .tabItem {
                         Label("Aura", systemImage: "sparkle")
                     }
+                    .tag(1)
 
                 HistoryView()
                     .tabItem {
                         Label("History", systemImage: "clock")
                     }
+                    .tag(2)
 
                 SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gearshape")
                     }
+                    .tag(3)
             }
             .preferredColorScheme(.dark)
             .onAppear {

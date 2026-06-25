@@ -28,7 +28,7 @@ struct SettingsView: View {
                 }
 
                 Section("Chat history") {
-                    Text("Conversations are saved locally on this device. Clear them anytime from the Ideate tab or the History tab.")
+                    Text("Conversations are saved locally on this device. Clear them anytime from the chat view.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

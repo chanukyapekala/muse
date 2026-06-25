@@ -38,7 +38,6 @@ struct ChatSessionsView: View {
         .sheet(item: $selected) { s in
             ChatSessionDetailView(session: s) { prompt in
                 engine.pendingPrompt = prompt
-                engine.selectedTab = 0
                 selected = nil
             }
         }

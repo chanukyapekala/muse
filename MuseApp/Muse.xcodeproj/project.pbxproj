@@ -28,6 +28,7 @@
 		CC001122334455667788CC01 /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001122334455667788CC02 /* MemoriesView.swift */; };
 		DD001122334455667788DD01 /* ChatSessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD001122334455667788DD02 /* ChatSessionsView.swift */; };
 		FF001122334455667788FF03 /* ChatThreadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF001122334455667788FF04 /* ChatThreadsView.swift */; };
+		5B001122334455667788SB01 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B001122334455667788SB02 /* SidebarView.swift */; };
 		DF19867F11FACC3CA6031B2D /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */; };
 		EAC12306B10964D26F03412A /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 48235CD1B7B8BA2C6E2AD4B5 /* MLXLLM */; };
 		F253CAACCAA61A3070675F9A /* ProviderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C88EF25328C55F2B37E8A6B /* ProviderProtocol.swift */; };
@@ -54,6 +55,7 @@
 		CC001122334455667788CC02 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
 		DD001122334455667788DD02 /* ChatSessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSessionsView.swift; sourceTree = "<group>"; };
 		FF001122334455667788FF04 /* ChatThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatThreadsView.swift; sourceTree = "<group>"; };
+		5B001122334455667788SB02 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		DF8B997F41E0671AD75016DD /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		F618E2C3CA8CDF6B910FD46F /* MLXProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -125,6 +127,7 @@
 				CC001122334455667788CC02 /* MemoriesView.swift */,
 				DD001122334455667788DD02 /* ChatSessionsView.swift */,
 				FF001122334455667788FF04 /* ChatThreadsView.swift */,
+				5B001122334455667788SB02 /* SidebarView.swift */,
 				7B8DA81BA75676D828DE2760 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -246,6 +249,7 @@
 				CC001122334455667788CC01 /* MemoriesView.swift in Sources */,
 				DD001122334455667788DD01 /* ChatSessionsView.swift in Sources */,
 				FF001122334455667788FF03 /* ChatThreadsView.swift in Sources */,
+				5B001122334455667788SB01 /* SidebarView.swift in Sources */,
 				69F1ACA5D48A03686D141B68 /* IdeateView.swift in Sources */,
 				1013628729CDCBFEE1B7FCA6 /* MLXProvider.swift in Sources */,
 				629B21148E2C7DAA561B99AC /* MuseApp.swift in Sources */,
@@ -271,7 +275,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -415,7 +419,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;

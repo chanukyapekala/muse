@@ -6,6 +6,8 @@ import SwiftUI
 @main
 struct MuseAppMain: App {
     @StateObject private var engine = MuseEngine()
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var preferredCompactColumn: NavigationSplitViewColumn = .detail
     let container: ModelContainer = Self.makeContainer()
 
     private static func makeContainer() -> ModelContainer {
@@ -46,30 +48,12 @@ struct MuseAppMain: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView(selection: $engine.selectedTab) {
-                IdeateView()
-                    .tabItem {
-                        Label("Ideate", systemImage: "sparkles")
-                    }
-                    .tag(0)
-
-                AuraView()
-                    .tabItem {
-                        Label("Aura", systemImage: "sparkle")
-                    }
-                    .tag(1)
-
-                HistoryView()
-                    .tabItem {
-                        Label("History", systemImage: "clock")
-                    }
-                    .tag(2)
-
-                SettingsView()
-                    .tabItem {
-                        Label("Settings", systemImage: "gearshape")
-                    }
-                    .tag(3)
+            NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $preferredCompactColumn) {
+                SidebarView(preferredCompactColumn: $preferredCompactColumn)
+            } detail: {
+                NavigationStack {
+                    IdeateView()
+                }
             }
             .preferredColorScheme(.dark)
             .onAppear {

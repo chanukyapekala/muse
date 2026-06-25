@@ -6,6 +6,9 @@ import MLX
 import MLXLLM
 import MLXLMCommon
 import Tokenizers
+#if os(iOS)
+import UIKit
+#endif
 
 class MLXProvider: ModelProvider, ObservableObject {
     let slug = "mlx"
@@ -57,6 +60,22 @@ class MLXProvider: ModelProvider, ObservableObject {
             return ModelResult(name: name, slug: slug, content: "", error: "Model failed to load")
         }
 
+        // iOS denies GPU command submission once the app is backgrounded; request
+        // a background-task token so a short generation can finish, and bail
+        // gracefully if iOS revokes it mid-stream.
+        #if os(iOS)
+        let bgTaskID: UIBackgroundTaskIdentifier = await MainActor.run {
+            UIApplication.shared.beginBackgroundTask(withName: "MLX inference")
+        }
+        defer {
+            if bgTaskID != .invalid {
+                Task { @MainActor in
+                    UIApplication.shared.endBackgroundTask(bgTaskID)
+                }
+            }
+        }
+        #endif
+
         let start = CFAbsoluteTimeGetCurrent()
 
         let session = ChatSession(
@@ -67,12 +86,25 @@ class MLXProvider: ModelProvider, ObservableObject {
 
         var output = ""
         var tokenCount = 0
-        for try await text in session.streamResponse(to: prompt) {
-            output += text
-            tokenCount += 1
-            if tokenCount >= maxTokens {
-                break
+        do {
+            for try await text in session.streamResponse(to: prompt) {
+                output += text
+                tokenCount += 1
+                if tokenCount >= maxTokens {
+                    break
+                }
             }
+        } catch {
+            // Most commonly: app went to background and Metal refused further
+            // GPU submissions. Return whatever we have rather than losing it.
+            if output.isEmpty { throw error }
+            return ModelResult(
+                name: name,
+                slug: slug,
+                content: output,
+                error: "Stopped early — app was backgrounded.",
+                latencyMs: Int((CFAbsoluteTimeGetCurrent() - start) * 1000)
+            )
         }
 
         let latency = Int((CFAbsoluteTimeGetCurrent() - start) * 1000)

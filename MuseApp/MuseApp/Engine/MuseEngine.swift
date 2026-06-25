@@ -12,7 +12,6 @@ class MuseEngine: ObservableObject {
     @Published var error: String?
     @Published var lastPrompt: String = ""
     @Published var isModelReady: Bool = false
-    @Published var selectedTab: Int = 0
     @Published var pendingPrompt: String?
     @Published var currentThreadID: UUID?
 

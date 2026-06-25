@@ -12,7 +12,6 @@ struct IdeateView: View {
     @State private var prompt = ""
     @State private var promptBeforeRecording = ""
     @State private var showClearConfirm = false
-    @State private var showThreads = false
     @FocusState private var isPromptFocused: Bool
 
     private var sessions: [StoredChatSession] {
@@ -27,9 +26,7 @@ struct IdeateView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            chatStack
-        }
+        chatStack
     }
 
     private var chatStack: some View {
@@ -81,13 +78,6 @@ struct IdeateView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showThreads = true
-                } label: {
-                    Image(systemName: "sidebar.left")
-                }
-            }
             if !sessions.isEmpty {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -99,10 +89,6 @@ struct IdeateView: View {
             }
         }
         #endif
-        .sheet(isPresented: $showThreads) {
-            ChatThreadsView()
-                .environmentObject(engine)
-        }
         .confirmationDialog("Clear conversation?", isPresented: $showClearConfirm, titleVisibility: .visible) {
             Button("Clear", role: .destructive) { clearConversation() }
             Button("Cancel", role: .cancel) {}

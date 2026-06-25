@@ -22,7 +22,7 @@ struct SettingsView: View {
                     #else
                     nameField
                     #endif
-                    Text("Used to greet you when you open Muse. Stored only on this device.")
+                    Text("Used to greet you when you open MuseAI. Stored only on this device.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

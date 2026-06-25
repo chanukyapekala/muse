@@ -74,7 +74,7 @@ struct IdeateView: View {
 
             inputBar
         }
-        .navigationTitle("Muse")
+        .navigationTitle("MuseAI")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -440,9 +440,9 @@ struct IdeateView: View {
     }
 
     private var inputPlaceholder: String {
-        if !engine.isModelReady { return "Setting up Muse..." }
+        if !engine.isModelReady { return "Setting up MuseAI..." }
         if speech.status == .recording { return "Listening..." }
-        return "Reply to Muse..."
+        return "Reply to MuseAI..."
     }
 
     private var sendButtonEnabled: Bool {

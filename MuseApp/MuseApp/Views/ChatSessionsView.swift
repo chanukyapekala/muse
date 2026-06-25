@@ -92,7 +92,7 @@ struct ChatSessionDetailView: View {
 
                     Divider()
 
-                    label("Muse replied")
+                    label("MuseAI replied")
                     Text(session.answer)
                         .font(.body)
                         .textSelection(.enabled)

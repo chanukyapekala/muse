@@ -12,16 +12,20 @@ struct AuraNode: Identifiable {
     var velocity: CGVector = .zero
 
     var color: Color {
-        switch label {
-        case "AI":       return Color(red: 0.60, green: 0.35, blue: 0.95)
-        case "Code":     return Color(red: 0.35, green: 0.55, blue: 0.95)
-        case "Data":     return Color(red: 0.30, green: 0.70, blue: 0.55)
-        case "Personal": return Color(red: 0.95, green: 0.55, blue: 0.30)
-        case "Health":   return Color(red: 0.90, green: 0.40, blue: 0.50)
-        case "Creative": return Color(red: 0.95, green: 0.80, blue: 0.30)
-        case "Work":     return Color(red: 0.55, green: 0.45, blue: 1.00)
-        default:         return Color(white: 0.5)
-        }
+        // Deterministic hash → hue across full spectrum, pastel-bright.
+        let palette: [Color] = [
+            Color(red: 0.60, green: 0.35, blue: 0.95),
+            Color(red: 0.35, green: 0.55, blue: 0.95),
+            Color(red: 0.30, green: 0.70, blue: 0.55),
+            Color(red: 0.95, green: 0.55, blue: 0.30),
+            Color(red: 0.90, green: 0.40, blue: 0.50),
+            Color(red: 0.95, green: 0.80, blue: 0.30),
+            Color(red: 0.55, green: 0.45, blue: 1.00),
+            Color(red: 0.40, green: 0.85, blue: 0.85),
+            Color(red: 0.85, green: 0.45, blue: 0.85),
+        ]
+        let hash = label.lowercased().unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+        return palette[abs(hash) % palette.count]
     }
 }
 
@@ -29,6 +33,7 @@ struct AuraEdge: Identifiable {
     let id: String
     let from: UUID
     let to: UUID
+    let weight: Int
 }
 
 @MainActor
@@ -41,9 +46,8 @@ final class AuraViewModel: ObservableObject {
     private let attraction: CGFloat = 0.02
     private let damping: CGFloat = 0.85
     private let idealLength: CGFloat = 110
-    private let edgeThreshold: Double = 0.55  // cosine distance under this = connect
 
-    func rebuild(from clusters: [MemoryCluster]) {
+    func rebuild(from clusters: [MemoryCluster], persistedEdges: [ClusterEdge]) {
         let center = CGPoint(x: 400, y: 400)
         let existing = Dictionary(uniqueKeysWithValues: nodes.map { ($0.id, $0.position) })
         var newNodes: [AuraNode] = []
@@ -56,22 +60,11 @@ final class AuraViewModel: ObservableObject {
             newNodes.append(AuraNode(id: c.id, label: c.label, count: c.count, embedding: c.embedding, position: pos))
         }
         nodes = newNodes
-        recomputeEdges()
+        let validIDs = Set(newNodes.map(\.id))
+        edges = persistedEdges
+            .filter { validIDs.contains($0.fromID) && validIDs.contains($0.toID) }
+            .map { AuraEdge(id: $0.id.uuidString, from: $0.fromID, to: $0.toID, weight: $0.weight) }
         startSimulation()
-    }
-
-    private func recomputeEdges() {
-        var result: [AuraEdge] = []
-        for i in 0..<nodes.count {
-            for j in (i + 1)..<nodes.count {
-                let a = nodes[i], b = nodes[j]
-                guard a.embedding.count == b.embedding.count, !a.embedding.isEmpty else { continue }
-                if cosineDistance(a.embedding, b.embedding) < edgeThreshold {
-                    result.append(AuraEdge(id: "\(a.id)-\(b.id)", from: a.id, to: b.id))
-                }
-            }
-        }
-        edges = result
     }
 
     func startSimulation() {
@@ -146,6 +139,7 @@ final class AuraViewModel: ObservableObject {
 
 struct AuraView: View {
     @Query(sort: \MemoryCluster.lastSeen, order: .reverse) private var clusters: [MemoryCluster]
+    @Query private var clusterEdges: [ClusterEdge]
     @Environment(\.modelContext) private var modelContext
     @StateObject private var vm = AuraViewModel()
 
@@ -153,41 +147,28 @@ struct AuraView: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
     @State private var selectedID: UUID?
+    @State private var navPath: [String] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ZStack {
                 Color.black.ignoresSafeArea()
                 if clusters.isEmpty {
                     emptyState
                 } else {
                     canvas
-                    VStack {
-                        Spacer()
-                        legend.padding(.bottom, 12)
-                    }
                 }
             }
             .navigationTitle("Aura")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if let id = selectedID, let node = vm.nodes.first(where: { $0.id == id }) {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .destructive) {
-                            if let c = clusters.first(where: { $0.id == node.id }) {
-                                modelContext.delete(c)
-                                selectedID = nil
-                            }
-                        } label: {
-                            Label("Forget", systemImage: "trash")
-                        }
-                    }
-                }
-            }
             #endif
-            .onAppear { vm.rebuild(from: clusters) }
-            .onChange(of: clusters.map(\.id)) { _, _ in vm.rebuild(from: clusters) }
+            .navigationDestination(for: String.self) { category in
+                ChatSessionsView(category: category)
+            }
+            .onAppear { vm.rebuild(from: clusters, persistedEdges: clusterEdges) }
+            .onChange(of: clusters.map(\.id)) { _, _ in vm.rebuild(from: clusters, persistedEdges: clusterEdges) }
+            .onChange(of: clusterEdges.map(\.id)) { _, _ in vm.rebuild(from: clusters, persistedEdges: clusterEdges) }
             .onDisappear { vm.stop() }
         }
     }
@@ -207,7 +188,9 @@ struct AuraView: View {
                     var path = Path()
                     path.move(to: a.position.applying(transform))
                     path.addLine(to: b.position.applying(transform))
-                    ctx.stroke(path, with: .color(.white.opacity(0.1)), lineWidth: 1)
+                    let intensity = min(0.08 + Double(e.weight) * 0.06, 0.6)
+                    let thickness = min(1.0 + CGFloat(e.weight) * 0.4, 4.0)
+                    ctx.stroke(path, with: .color(.white.opacity(intensity)), lineWidth: thickness)
                 }
 
                 for n in vm.nodes {
@@ -239,33 +222,18 @@ struct AuraView: View {
                                           y: canvasCenter.y + offset.height)
                     .scaledBy(x: scale, y: scale)
                     .translatedBy(x: -400, y: -400)
-                var closest: (UUID, CGFloat)?
+                var closest: (AuraNode, CGFloat)?
                 for n in vm.nodes {
                     let p = n.position.applying(t)
                     let d = hypot(loc.x - p.x, loc.y - p.y)
-                    if d < 30, closest == nil || d < closest!.1 { closest = (n.id, d) }
+                    if d < 30, closest == nil || d < closest!.1 { closest = (n, d) }
                 }
-                selectedID = closest?.0
-            }
-        }
-    }
-
-    private var legend: some View {
-        HStack(spacing: 10) {
-            ForEach(MemoryEngine.categories, id: \.label) { c in
-                HStack(spacing: 4) {
-                    Circle().fill(colorFor(c.label)).frame(width: 7, height: 7)
-                    Text(c.label).font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.7))
+                if let (node, _) = closest {
+                    selectedID = node.id
+                    navPath.append(node.label)
                 }
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
-    }
-
-    private func colorFor(_ label: String) -> Color {
-        AuraNode(id: UUID(), label: label, count: 0, embedding: [], position: .zero).color
     }
 
     private var emptyState: some View {

@@ -3,7 +3,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage("saveChatHistory") private var saveChatHistory = false
+    @AppStorage("userName") private var userName: String = ""
 
     var body: some View {
         NavigationStack {
@@ -14,11 +14,21 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Personalization") {
+                    let nameField = TextField("Your name", text: $userName)
+                        .autocorrectionDisabled()
+                    #if os(iOS)
+                    nameField.textInputAutocapitalization(.words)
+                    #else
+                    nameField
+                    #endif
+                    Text("Used to greet you when you open Muse. Stored only on this device.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Chat history") {
-                    Toggle("Save chat history on this device", isOn: $saveChatHistory)
-                    Text(saveChatHistory
-                         ? "Conversations are saved locally on this device only."
-                         : "Conversations vanish when you close the app.")
+                    Text("Conversations are saved locally on this device. Clear them anytime from the chat view.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

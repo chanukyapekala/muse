@@ -8,23 +8,28 @@
 
 /* Begin PBXBuildFile section */
 		0AA5C1B6284A316DDAEDB4F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CA3442B96D1708A94C043199 /* Assets.xcassets */; };
-		8D4E5F60718293A4B5C6D7E8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */; };
 		1013628729CDCBFEE1B7FCA6 /* MLXProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F618E2C3CA8CDF6B910FD46F /* MLXProvider.swift */; };
 		265EE786C37348FC3DA24846 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 11819990359008755FFBC687 /* MLXLMCommon */; };
 		3E0BBD7333F77C0AA9CB48D6 /* Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF8B997F41E0671AD75016DD /* Types.swift */; };
-		AA001122334455667788AA01 /* StoredChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001122334455667788AA02 /* StoredChatSession.swift */; };
-		BB001122334455667788BB01 /* Memory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB02 /* Memory.swift */; };
-		BB001122334455667788BB03 /* MemoryCluster.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB04 /* MemoryCluster.swift */; };
-		BB001122334455667788BB05 /* MemoryEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB06 /* MemoryEngine.swift */; };
 		5A1B2C3D4E5F60718293A4B5 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B2C3D4E5F60718293A4B5C6 /* SpeechRecognizer.swift */; };
 		629B21148E2C7DAA561B99AC /* MuseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CC2A01A0BB25703E936F8C2 /* MuseApp.swift */; };
 		69F1ACA5D48A03686D141B68 /* IdeateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 451CCCE77A2A7C4CD033AFD2 /* IdeateView.swift */; };
 		736932E7A813DC397C03E152 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8DA81BA75676D828DE2760 /* SettingsView.swift */; };
+		8D4E5F60718293A4B5C6D7E8 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */; };
 		A2C1FC49B860F9F9D5FCF1F3 /* MuseEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DD693890133CF9D3F50B544 /* MuseEngine.swift */; };
 		A510487ADA9C2CB5BBFF6359 /* MLXHuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = 9B9FA552A27010123738A4B0 /* MLXHuggingFace */; };
+		AA001122334455667788AA01 /* StoredChatSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001122334455667788AA02 /* StoredChatSession.swift */; };
 		B14EE514D456500E3BC50997 /* HuggingFace in Frameworks */ = {isa = PBXBuildFile; productRef = AE1A8D2D087561843D0ACC09 /* HuggingFace */; };
-		DF19867F11FACC3CA6031B2D /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */; };
+		BB001122334455667788BB01 /* Memory.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB02 /* Memory.swift */; };
+		BB001122334455667788BB03 /* MemoryCluster.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB04 /* MemoryCluster.swift */; };
+		EE001122334455667788EE01 /* ClusterEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE001122334455667788EE02 /* ClusterEdge.swift */; };
+		FF001122334455667788FF01 /* ChatThread.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF001122334455667788FF02 /* ChatThread.swift */; };
+		BB001122334455667788BB05 /* MemoryEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001122334455667788BB06 /* MemoryEngine.swift */; };
 		CC001122334455667788CC01 /* MemoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC001122334455667788CC02 /* MemoriesView.swift */; };
+		DD001122334455667788DD01 /* ChatSessionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD001122334455667788DD02 /* ChatSessionsView.swift */; };
+		FF001122334455667788FF03 /* ChatThreadsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF001122334455667788FF04 /* ChatThreadsView.swift */; };
+		5B001122334455667788SB01 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B001122334455667788SB02 /* SidebarView.swift */; };
+		DF19867F11FACC3CA6031B2D /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */; };
 		EAC12306B10964D26F03412A /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 48235CD1B7B8BA2C6E2AD4B5 /* MLXLLM */; };
 		F253CAACCAA61A3070675F9A /* ProviderProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C88EF25328C55F2B37E8A6B /* ProviderProtocol.swift */; };
 		FF10415952DF68938A072432 /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 6A9E96F0451FF5A43E759ECE /* Tokenizers */; };
@@ -33,20 +38,25 @@
 /* Begin PBXFileReference section */
 		451CCCE77A2A7C4CD033AFD2 /* IdeateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdeateView.swift; sourceTree = "<group>"; };
 		4DD693890133CF9D3F50B544 /* MuseEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseEngine.swift; sourceTree = "<group>"; };
+		6B2C3D4E5F60718293A4B5C6 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		6C88EF25328C55F2B37E8A6B /* ProviderProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderProtocol.swift; sourceTree = "<group>"; };
 		6CC2A01A0BB25703E936F8C2 /* MuseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuseApp.swift; sourceTree = "<group>"; };
 		7B8DA81BA75676D828DE2760 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		6B2C3D4E5F60718293A4B5C6 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
-		BC19E4BC618EC6F5DCBECB53 /* Muse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Muse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E5F60718293A4B5C6D7E8F9 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		CA3442B96D1708A94C043199 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		DF8B997F41E0671AD75016DD /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		AA001122334455667788AA02 /* StoredChatSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoredChatSession.swift; sourceTree = "<group>"; };
-		CC001122334455667788CC02 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
 		BB001122334455667788BB02 /* Memory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Memory.swift; sourceTree = "<group>"; };
 		BB001122334455667788BB04 /* MemoryCluster.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryCluster.swift; sourceTree = "<group>"; };
+		EE001122334455667788EE02 /* ClusterEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClusterEdge.swift; sourceTree = "<group>"; };
+		FF001122334455667788FF02 /* ChatThread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatThread.swift; sourceTree = "<group>"; };
 		BB001122334455667788BB06 /* MemoryEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryEngine.swift; sourceTree = "<group>"; };
+		BC19E4BC618EC6F5DCBECB53 /* Muse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Muse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA3442B96D1708A94C043199 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CC001122334455667788CC02 /* MemoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoriesView.swift; sourceTree = "<group>"; };
+		DD001122334455667788DD02 /* ChatSessionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSessionsView.swift; sourceTree = "<group>"; };
+		FF001122334455667788FF04 /* ChatThreadsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatThreadsView.swift; sourceTree = "<group>"; };
+		5B001122334455667788SB02 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		DF8B997F41E0671AD75016DD /* Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Types.swift; sourceTree = "<group>"; };
 		F618E2C3CA8CDF6B910FD46F /* MLXProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLXProvider.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,14 +91,12 @@
 			path = MuseApp;
 			sourceTree = "<group>";
 		};
-		AA001122334455667788AA03 /* Models */ = {
+		6BD48AFB4A452C5B51EF003A /* App */ = {
 			isa = PBXGroup;
 			children = (
-				BB001122334455667788BB02 /* Memory.swift */,
-				BB001122334455667788BB04 /* MemoryCluster.swift */,
-				AA001122334455667788AA02 /* StoredChatSession.swift */,
+				6CC2A01A0BB25703E936F8C2 /* MuseApp.swift */,
 			);
-			path = Models;
+			path = App;
 			sourceTree = "<group>";
 		};
 		7C3D4E5F60718293A4B5C6D7 /* Speech */ = {
@@ -99,12 +107,16 @@
 			path = Speech;
 			sourceTree = "<group>";
 		};
-		6BD48AFB4A452C5B51EF003A /* App */ = {
+		AA001122334455667788AA03 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				6CC2A01A0BB25703E936F8C2 /* MuseApp.swift */,
+				BB001122334455667788BB02 /* Memory.swift */,
+				BB001122334455667788BB04 /* MemoryCluster.swift */,
+				EE001122334455667788EE02 /* ClusterEdge.swift */,
+				FF001122334455667788FF02 /* ChatThread.swift */,
+				AA001122334455667788AA02 /* StoredChatSession.swift */,
 			);
-			path = App;
+			path = Models;
 			sourceTree = "<group>";
 		};
 		B5C01D5215DEE1A8707CB147 /* Views */ = {
@@ -113,6 +125,9 @@
 				7DD3B99C20D6E10C3FFDF221 /* HistoryView.swift */,
 				451CCCE77A2A7C4CD033AFD2 /* IdeateView.swift */,
 				CC001122334455667788CC02 /* MemoriesView.swift */,
+				DD001122334455667788DD02 /* ChatSessionsView.swift */,
+				FF001122334455667788FF04 /* ChatThreadsView.swift */,
+				5B001122334455667788SB02 /* SidebarView.swift */,
 				7B8DA81BA75676D828DE2760 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -232,6 +247,9 @@
 			files = (
 				DF19867F11FACC3CA6031B2D /* HistoryView.swift in Sources */,
 				CC001122334455667788CC01 /* MemoriesView.swift in Sources */,
+				DD001122334455667788DD01 /* ChatSessionsView.swift in Sources */,
+				FF001122334455667788FF03 /* ChatThreadsView.swift in Sources */,
+				5B001122334455667788SB01 /* SidebarView.swift in Sources */,
 				69F1ACA5D48A03686D141B68 /* IdeateView.swift in Sources */,
 				1013628729CDCBFEE1B7FCA6 /* MLXProvider.swift in Sources */,
 				629B21148E2C7DAA561B99AC /* MuseApp.swift in Sources */,
@@ -242,6 +260,8 @@
 				AA001122334455667788AA01 /* StoredChatSession.swift in Sources */,
 				BB001122334455667788BB01 /* Memory.swift in Sources */,
 				BB001122334455667788BB03 /* MemoryCluster.swift in Sources */,
+				EE001122334455667788EE01 /* ClusterEdge.swift in Sources */,
+				FF001122334455667788FF01 /* ChatThread.swift in Sources */,
 				BB001122334455667788BB05 /* MemoryEngine.swift in Sources */,
 				3E0BBD7333F77C0AA9CB48D6 /* Types.swift in Sources */,
 			);
@@ -255,7 +275,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -399,7 +419,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 7HWUR5MR38;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;

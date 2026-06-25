@@ -6,10 +6,12 @@ import SwiftUI
 @main
 struct MuseAppMain: App {
     @StateObject private var engine = MuseEngine()
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var preferredCompactColumn: NavigationSplitViewColumn = .detail
     let container: ModelContainer = Self.makeContainer()
 
     private static func makeContainer() -> ModelContainer {
-        let schema = Schema([StoredChatSession.self, MemoryCluster.self])
+        let schema = Schema([StoredChatSession.self, MemoryCluster.self, ClusterEdge.self, ChatThread.self])
 
         // 1. Try normal persistent store
         if let c = try? ModelContainer(for: schema) { return c }
@@ -46,26 +48,12 @@ struct MuseAppMain: App {
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                IdeateView()
-                    .tabItem {
-                        Label("Ideate", systemImage: "sparkles")
-                    }
-
-                AuraView()
-                    .tabItem {
-                        Label("Aura", systemImage: "sparkle")
-                    }
-
-                HistoryView()
-                    .tabItem {
-                        Label("History", systemImage: "clock")
-                    }
-
-                SettingsView()
-                    .tabItem {
-                        Label("Settings", systemImage: "gearshape")
-                    }
+            NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $preferredCompactColumn) {
+                SidebarView(preferredCompactColumn: $preferredCompactColumn)
+            } detail: {
+                NavigationStack {
+                    IdeateView()
+                }
             }
             .preferredColorScheme(.dark)
             .onAppear {

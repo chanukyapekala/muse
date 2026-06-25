@@ -21,19 +21,25 @@
 
   <h2>What Muse does not collect</h2>
   <ul>
-    <li>No personal information (name, email, phone number)</li>
     <li>No account registration or sign-in</li>
     <li>No conversation content transmitted off your device</li>
     <li>No usage analytics or behavioural tracking</li>
     <li>No crash reports sent to any server</li>
     <li>No advertising identifiers</li>
   </ul>
+  <p>Muse may ask for your first name in Settings to personalise the greeting on the home screen. This is stored only in your device's local app preferences and is never transmitted.</p>
 
   <h2>On-device AI inference</h2>
   <p>All AI responses are generated entirely on your iPhone using a locally bundled language model (Llama 3.2 1B). Your prompts and the model's responses never leave your device.</p>
 
   <h2>Chat history</h2>
-  <p>If you enable "Save chat history" in Settings, your conversations are stored locally on your device using Apple's SwiftData framework. This data is never transmitted anywhere. You can delete your history at any time from the History tab or by deleting the app.</p>
+  <p>Your conversations are stored locally on your device using Apple's SwiftData framework so the assistant can remember context across turns. This data is never transmitted anywhere. You can clear all conversations at any time from the trash icon on the chat screen, the History tab, or by deleting the app.</p>
+
+  <h2>Topic graph (Aura)</h2>
+  <p>Muse classifies each of your prompts into one of seven on-device topic categories (AI, Code, Data, Personal, Health, Creative, Work) using Apple's on-device <code>NLEmbedding</code> framework. The category labels and visit counts are stored locally to power the Aura graph. Nothing about this classification leaves your device.</p>
+
+  <h2>Sharing to other apps</h2>
+  <p>When you tap the share icon on a response, iOS's standard share sheet is presented so you can copy the text into WhatsApp, Messages, Notes, or any other app you choose. Muse only passes the response text to iOS; what the receiving app does with it is governed by that app's own privacy policy.</p>
 
   <h2>Microphone</h2>
   <p>If you use voice input, Muse uses Apple's on-device speech recognition. Audio is transcribed locally and never sent to any server, including Apple's servers — Muse explicitly requires on-device-only recognition.</p>
